@@ -176,6 +176,81 @@
     }
   }
 
+  function applyTheme(theme) {
+    const normalized = theme === "light" || theme === "dark" ? theme : "system";
+    const root = document.documentElement;
+
+    if (normalized === "system") {
+      root.removeAttribute("data-mdpad-theme");
+      root.style.colorScheme = "";
+    } else {
+      root.dataset.mdpadTheme = normalized;
+      root.style.colorScheme = normalized;
+    }
+
+    const lightHighlight = document.getElementById("highlight-light-theme");
+    const darkHighlight = document.getElementById("highlight-dark-theme");
+    if (lightHighlight && darkHighlight) {
+      lightHighlight.disabled = normalized === "dark";
+      darkHighlight.disabled = normalized === "light";
+      lightHighlight.media = normalized === "system" ? "(prefers-color-scheme: light)" : "all";
+      darkHighlight.media = normalized === "system" ? "(prefers-color-scheme: dark)" : "all";
+    }
+  }
+
+  function collectStylesForExport() {
+    const styles = [];
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        for (const rule of Array.from(sheet.cssRules || [])) {
+          styles.push(rule.cssText);
+        }
+      } catch {
+        // Some browser-managed style sheets may not expose rules.
+      }
+    }
+    return styles.join("\n").replaceAll("</style", "<\\/style");
+  }
+
+  function rewriteDocumentResourceUrls(root) {
+    if (!currentBase) {
+      return;
+    }
+
+    const rewrite = (element, attribute) => {
+      const value = element.getAttribute(attribute);
+      if (!value) {
+        return;
+      }
+
+      try {
+        const url = new URL(value, document.location.href);
+        if (url.href.startsWith(currentBase)) {
+          element.setAttribute(attribute, decodeURIComponent(`${url.pathname.slice(1)}${url.search}${url.hash}`));
+        }
+      } catch {
+        // Keep the existing value when it is not parseable as a URL.
+      }
+    };
+
+    for (const element of root.querySelectorAll("img[src], iframe[src]")) {
+      rewrite(element, "src");
+    }
+  }
+
+  function exportHtml() {
+    const html = document.documentElement.cloneNode(true);
+    html.querySelectorAll("script, link[rel='stylesheet'], base[data-mdpad-document-base]").forEach((element) => element.remove());
+    rewriteDocumentResourceUrls(html);
+
+    const head = html.querySelector("head") || html.insertBefore(document.createElement("head"), html.firstChild);
+    const style = document.createElement("style");
+    style.textContent = collectStylesForExport();
+    head.appendChild(style);
+
+    return `<!doctype html>\n${html.outerHTML}`;
+  }
+
   function setDocumentBase() {
     let base = document.querySelector("base[data-mdpad-document-base]");
     if (!currentBase) {
@@ -327,6 +402,7 @@
   function render(payload) {
     currentBase = payload.baseUri || "";
     setDocumentBase();
+    applyTheme(payload.theme || "system");
     content.style.fontSize = `${Math.round((payload.zoom || 1) * 100)}%`;
     const template = document.createElement("template");
     template.innerHTML = sanitize(payload.html || "");
@@ -401,5 +477,5 @@
     });
   }
 
-  window.__mdpadRenderer = { render, sanitize };
+  window.__mdpadRenderer = { render, sanitize, exportHtml };
 })();

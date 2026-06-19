@@ -23,7 +23,9 @@ namespace winrt::MDpad::implementation
         void Open_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void Save_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SaveAs_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void SaveHtml_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void Exit_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void Settings_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void ToggleMode_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void OpenFormattedByDefault_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void WordWrap_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -47,10 +49,14 @@ namespace winrt::MDpad::implementation
 
     private:
         fire_and_forget InitializePreviewAsync();
+        fire_and_forget SaveGeneratedHtmlAsync();
+        fire_and_forget ShowSettingsAsync();
         void LoadSettings();
         void SaveSettings();
         void ApplyWindowSize();
         void SaveWindowSize();
+        void ApplyAppTheme();
+        void ApplyTransparency();
         void ApplyViewMode();
         void ApplyEditCommandState();
         void ApplyTitle();
@@ -62,6 +68,7 @@ namespace winrt::MDpad::implementation
         bool Save();
         bool SaveAs();
         HWND WindowHandle();
+        std::filesystem::path SuggestedHtmlPath() const;
         void OnPreviewMessage(Microsoft::Web::WebView2::Core::CoreWebView2 const& sender, Microsoft::Web::WebView2::Core::CoreWebView2WebMessageReceivedEventArgs const& args);
         void OnPreviewNavigationCompleted(Microsoft::Web::WebView2::Core::CoreWebView2 const& sender, Microsoft::Web::WebView2::Core::CoreWebView2NavigationCompletedEventArgs const& args);
         void OpenExternalLink(std::wstring const& href);

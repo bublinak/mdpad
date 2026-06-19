@@ -58,7 +58,8 @@ dom.window.__mdpadRenderer.render({
     <pre><code class="language-js">const x = 1;</code></pre>
   `,
   baseUri: "https://doc.mdpad.local/",
-  zoom: 1.25
+  zoom: 1.25,
+  theme: "dark"
 });
 
 await new Promise((resolve) => setTimeout(resolve, 32));
@@ -69,6 +70,8 @@ const content = document.getElementById("content");
 assert.equal(dom.window.bad, undefined);
 assert.equal(content.style.fontSize, "125%");
 assert.equal(document.querySelector("base[data-mdpad-document-base]").href, "https://doc.mdpad.local/");
+assert.equal(document.documentElement.dataset.mdpadTheme, "dark");
+assert.equal(document.documentElement.style.colorScheme, "dark");
 assert.equal(document.querySelector("img[alt='diagram']").src, "https://doc.mdpad.local/images/a.png");
 assert.equal(document.querySelector("img[alt='diagram']").getAttribute("onmouseover"), null);
 assert.equal(document.querySelector("img[alt='bad']").hasAttribute("src"), false);
@@ -105,5 +108,13 @@ assert.deepEqual(posted, ["open-link:https://example.com/docs"]);
 
 assert.equal(dom.window.mdpadFind("hello"), true);
 assert.ok(document.querySelector(".find-highlight"));
+
+const exported = dom.window.__mdpadRenderer.exportHtml();
+assert.ok(exported.startsWith("<!doctype html>"));
+assert.ok(exported.includes("<style>"));
+assert.ok(exported.includes("data-mdpad-theme=\"dark\""));
+assert.ok(!exported.includes("<script"));
+assert.ok(!exported.includes("https://doc.mdpad.local/images/a.png"));
+assert.ok(exported.includes("src=\"images/a.png\""));
 
 console.log("Renderer tests passed.");

@@ -18,10 +18,23 @@ This repository was generated and iteratively modified with AI assistance from O
 - Relative image and iframe paths resolved against the opened Markdown file folder.
 - Sanitized raw HTML support for common document markup, including `div`, `img`, and `iframe`.
 - Safe inline CSS subset for layout-oriented HTML, including side-by-side iframe layouts.
+- Generated preview HTML export from the `File` menu.
+- Settings dialog for theme, startup mode, and transparency effect.
 - `.md` and `.markdown` file associations in the packaged app manifest.
 - Self-contained Windows App SDK release package.
 
 ## Releases
+
+### v1.2
+
+Adds app-level settings and HTML export:
+
+- `File > Save HTML...` exports the current generated WebView preview as an HTML snapshot.
+- Settings button in the top-right toolbar.
+- Transparency effect slider from 0-100%.
+- App theme selection: system, light, or dark.
+- Default startup view selection: formatted or syntax.
+- GitHub and MIT License links in Settings.
 
 ### v1.1
 

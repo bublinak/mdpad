@@ -5,6 +5,7 @@
 #endif
 
 #include "Core/HtmlUtil.h"
+#include "Core/TextEncoding.h"
 #include "Core/Win32Dialogs.h"
 
 #include <microsoft.ui.xaml.window.h>
@@ -59,16 +60,112 @@ namespace
         return L"https://doc.mdpad.local/";
     }
 
-    std::wstring BuildPreviewJson(std::string_view html, std::wstring_view baseUri, double zoom)
+    wchar_t const* ThemeName(AppTheme theme)
+    {
+        switch (theme)
+        {
+        case AppTheme::Light:
+            return L"light";
+        case AppTheme::Dark:
+            return L"dark";
+        default:
+            return L"system";
+        }
+    }
+
+    std::wstring BuildPreviewJson(std::string_view html, std::wstring_view baseUri, double zoom, AppTheme theme)
     {
         std::wstringstream payload;
         payload << L"{"
             << L"\"kind\":\"render\","
             << L"\"html\":" << JsonStringUtf8(html) << L","
             << L"\"baseUri\":" << JsonString(baseUri) << L","
-            << L"\"zoom\":" << zoom
+            << L"\"zoom\":" << zoom << L","
+            << L"\"theme\":" << JsonString(ThemeName(theme))
             << L"}";
         return payload.str();
+    }
+
+    int HexValue(wchar_t ch)
+    {
+        if (ch >= L'0' && ch <= L'9')
+        {
+            return ch - L'0';
+        }
+        if (ch >= L'a' && ch <= L'f')
+        {
+            return 10 + ch - L'a';
+        }
+        if (ch >= L'A' && ch <= L'F')
+        {
+            return 10 + ch - L'A';
+        }
+        return -1;
+    }
+
+    std::wstring DecodeJsonString(std::wstring_view value)
+    {
+        if (value.size() < 2 || value.front() != L'"' || value.back() != L'"')
+        {
+            return std::wstring(value);
+        }
+
+        std::wstring decoded;
+        decoded.reserve(value.size());
+        for (size_t i = 1; i + 1 < value.size(); ++i)
+        {
+            wchar_t const ch = value[i];
+            if (ch != L'\\' || i + 1 >= value.size())
+            {
+                decoded.push_back(ch);
+                continue;
+            }
+
+            wchar_t const escaped = value[++i];
+            switch (escaped)
+            {
+            case L'"': decoded.push_back(L'"'); break;
+            case L'\\': decoded.push_back(L'\\'); break;
+            case L'/': decoded.push_back(L'/'); break;
+            case L'b': decoded.push_back(L'\b'); break;
+            case L'f': decoded.push_back(L'\f'); break;
+            case L'n': decoded.push_back(L'\n'); break;
+            case L'r': decoded.push_back(L'\r'); break;
+            case L't': decoded.push_back(L'\t'); break;
+            case L'u':
+            {
+                if (i + 4 >= value.size())
+                {
+                    decoded.push_back(L'?');
+                    break;
+                }
+
+                int code = 0;
+                bool valid = true;
+                for (size_t digit = 0; digit < 4; ++digit)
+                {
+                    int const hex = HexValue(value[i + 1 + digit]);
+                    if (hex < 0)
+                    {
+                        valid = false;
+                        break;
+                    }
+                    code = (code << 4) | hex;
+                }
+
+                if (valid)
+                {
+                    decoded.push_back(static_cast<wchar_t>(code));
+                    i += 4;
+                }
+                break;
+            }
+            default:
+                decoded.push_back(escaped);
+                break;
+            }
+        }
+        return decoded;
     }
 
     std::wstring StripMessagePrefix(std::wstring const& value, std::wstring const& prefix)
@@ -92,6 +189,8 @@ namespace winrt::MDpad::implementation
         Closed({ this, &MainWindow::OnClosed });
         LoadSettings();
         ApplyWindowSize();
+        ApplyAppTheme();
+        ApplyTransparency();
 
         m_viewMode = m_settings.openFormattedByDefault ? ViewMode::Formatted : ViewMode::Syntax;
         m_suppressTextChanged = true;
@@ -121,6 +220,153 @@ namespace winrt::MDpad::implementation
         core.WebMessageReceived({ this, &MainWindow::OnPreviewMessage });
         core.NavigationCompleted({ this, &MainWindow::OnPreviewNavigationCompleted });
         PreviewWebView().Source(Uri(L"https://app.mdpad.local/index.html"));
+    }
+
+    fire_and_forget MainWindow::SaveGeneratedHtmlAsync()
+    {
+        auto lifetime = get_strong();
+
+        try
+        {
+            if (!m_previewReady || !PreviewWebView().CoreWebView2())
+            {
+                ShowError(WindowHandle(), L"The preview renderer is still loading. Try again in a moment.");
+                co_return;
+            }
+
+            RenderPreview();
+            std::filesystem::path const suggested = SuggestedHtmlPath();
+            auto path = ShowSaveHtmlDialog(WindowHandle(), suggested);
+            if (!path)
+            {
+                co_return;
+            }
+
+            hstring const script = LR"(
+                new Promise((resolve) => {
+                    requestAnimationFrame(() => {
+                        setTimeout(() => resolve(window.__mdpadRenderer.exportHtml()), 80);
+                    });
+                });
+            )";
+            hstring const encoded = co_await PreviewWebView().CoreWebView2().ExecuteScriptAsync(script);
+            std::wstring const html = DecodeJsonString(encoded.c_str());
+            std::ofstream stream(*path, std::ios::binary | std::ios::trunc);
+            if (!stream)
+            {
+                throw std::runtime_error("Unable to open file for writing.");
+            }
+
+            std::string const bytes = ToUtf8(html);
+            stream.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+            StatusTextBlock().Text(L"Saved HTML preview: " + path->wstring());
+        }
+        catch (std::exception const& error)
+        {
+            ShowError(WindowHandle(), ErrorText("Could not save the generated HTML.", error));
+        }
+    }
+
+    fire_and_forget MainWindow::ShowSettingsAsync()
+    {
+        auto lifetime = get_strong();
+
+        ContentDialog dialog;
+        dialog.XamlRoot(RootGrid().XamlRoot());
+        dialog.Title(box_value(L"Settings"));
+        dialog.PrimaryButtonText(L"Done");
+        dialog.DefaultButton(ContentDialogButton::Primary);
+
+        StackPanel content;
+        content.Spacing(14);
+        content.Width(360);
+
+        TextBlock transparencyLabel;
+        transparencyLabel.Text(L"Transparency effect: " + to_hstring(m_settings.transparencyPercent) + L"%");
+
+        Slider transparencySlider;
+        transparencySlider.Minimum(0);
+        transparencySlider.Maximum(100);
+        transparencySlider.StepFrequency(1);
+        transparencySlider.Value(static_cast<double>(m_settings.transparencyPercent));
+        transparencySlider.ValueChanged([this, transparencyLabel](IInspectable const&, RangeBaseValueChangedEventArgs const& args) {
+            m_settings.transparencyPercent = std::clamp(static_cast<int>(std::round(args.NewValue())), 0, 100);
+            transparencyLabel.Text(L"Transparency effect: " + to_hstring(m_settings.transparencyPercent) + L"%");
+            ApplyTransparency();
+            SaveSettings();
+        });
+
+        TextBlock themeLabel;
+        themeLabel.Text(L"App theme");
+
+        ComboBox themeBox;
+        themeBox.Width(220);
+        for (wchar_t const* label : { L"Use system", L"Light", L"Dark" })
+        {
+            ComboBoxItem item;
+            item.Content(box_value(label));
+            themeBox.Items().Append(item);
+        }
+        themeBox.SelectedIndex(static_cast<int>(m_settings.appTheme));
+        themeBox.SelectionChanged([this](IInspectable const& sender, SelectionChangedEventArgs const&) {
+            int const selected = sender.as<ComboBox>().SelectedIndex();
+            if (selected >= static_cast<int>(AppTheme::System) && selected <= static_cast<int>(AppTheme::Dark))
+            {
+                m_settings.appTheme = static_cast<AppTheme>(selected);
+                ApplyAppTheme();
+                SaveSettings();
+                PostPreviewPayload();
+            }
+        });
+
+        TextBlock defaultModeLabel;
+        defaultModeLabel.Text(L"Default app behavior");
+
+        ComboBox defaultModeBox;
+        defaultModeBox.Width(220);
+        for (wchar_t const* label : { L"Start formatted", L"Start in syntax" })
+        {
+            ComboBoxItem item;
+            item.Content(box_value(label));
+            defaultModeBox.Items().Append(item);
+        }
+        defaultModeBox.SelectedIndex(m_settings.openFormattedByDefault ? 0 : 1);
+        defaultModeBox.SelectionChanged([this](IInspectable const& sender, SelectionChangedEventArgs const&) {
+            m_settings.openFormattedByDefault = sender.as<ComboBox>().SelectedIndex() == 0;
+            OpenFormattedByDefaultItem().IsChecked(m_settings.openFormattedByDefault);
+            SaveSettings();
+        });
+
+        StackPanel links;
+        links.Orientation(Orientation::Horizontal);
+        links.Spacing(12);
+        links.Margin(ThicknessHelper::FromLengths(0, 8, 0, 0));
+
+        HyperlinkButton githubLink;
+        githubLink.Content(box_value(L"GitHub"));
+        githubLink.Click([this](IInspectable const&, RoutedEventArgs const&) {
+            OpenExternalLink(L"https://github.com/bublinak/mdpad");
+        });
+
+        HyperlinkButton licenseLink;
+        licenseLink.Content(box_value(L"MIT License"));
+        licenseLink.Click([this](IInspectable const&, RoutedEventArgs const&) {
+            OpenExternalLink(L"https://github.com/bublinak/mdpad/blob/main/LICENSE");
+        });
+
+        links.Children().Append(githubLink);
+        links.Children().Append(licenseLink);
+
+        content.Children().Append(transparencyLabel);
+        content.Children().Append(transparencySlider);
+        content.Children().Append(themeLabel);
+        content.Children().Append(themeBox);
+        content.Children().Append(defaultModeLabel);
+        content.Children().Append(defaultModeBox);
+        content.Children().Append(links);
+
+        dialog.Content(content);
+        co_await dialog.ShowAsync();
     }
 
     void MainWindow::OpenPath(std::wstring const& path)
@@ -186,12 +432,22 @@ namespace winrt::MDpad::implementation
         SaveAs();
     }
 
+    void MainWindow::SaveHtml_Click(IInspectable const&, RoutedEventArgs const&)
+    {
+        SaveGeneratedHtmlAsync();
+    }
+
     void MainWindow::Exit_Click(IInspectable const&, RoutedEventArgs const&)
     {
         if (ConfirmDiscardIfDirty())
         {
             Close();
         }
+    }
+
+    void MainWindow::Settings_Click(IInspectable const&, RoutedEventArgs const&)
+    {
+        ShowSettingsAsync();
     }
 
     void MainWindow::ToggleMode_Click(IInspectable const&, RoutedEventArgs const&)
@@ -397,6 +653,37 @@ namespace winrt::MDpad::implementation
         SaveSettings();
     }
 
+    void MainWindow::ApplyAppTheme()
+    {
+        ElementTheme theme = ElementTheme::Default;
+        if (m_settings.appTheme == AppTheme::Light)
+        {
+            theme = ElementTheme::Light;
+        }
+        else if (m_settings.appTheme == AppTheme::Dark)
+        {
+            theme = ElementTheme::Dark;
+        }
+
+        RootGrid().RequestedTheme(theme);
+    }
+
+    void MainWindow::ApplyTransparency()
+    {
+        HWND const hwnd = WindowHandle();
+        if (!hwnd)
+        {
+            return;
+        }
+
+        int const transparency = std::clamp(m_settings.transparencyPercent, 0, 100);
+        LONG_PTR const style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+        SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED);
+
+        BYTE const alpha = static_cast<BYTE>(std::clamp(255 - static_cast<int>(std::round(transparency * 1.55)), 100, 255));
+        SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
+    }
+
     void MainWindow::ApplyViewMode()
     {
         bool const formatted = m_viewMode == ViewMode::Formatted;
@@ -451,7 +738,7 @@ namespace winrt::MDpad::implementation
     {
         std::string const html = m_renderer.Render(m_document.Text());
         std::wstring const baseUri = ToVirtualFolderUri(m_document.Directory());
-        m_pendingPreviewJson = BuildPreviewJson(html, baseUri, m_settings.zoom);
+        m_pendingPreviewJson = BuildPreviewJson(html, baseUri, m_settings.zoom, m_settings.appTheme);
 
         if (m_previewReady && PreviewWebView().CoreWebView2())
         {
@@ -569,6 +856,18 @@ namespace winrt::MDpad::implementation
             native->get_WindowHandle(&hwnd);
         }
         return hwnd;
+    }
+
+    std::filesystem::path MainWindow::SuggestedHtmlPath() const
+    {
+        if (m_document.HasPath())
+        {
+            std::filesystem::path path = m_document.Path();
+            path.replace_extension(L".html");
+            return path;
+        }
+
+        return std::filesystem::path(L"Untitled.html");
     }
 
     void MainWindow::OnPreviewMessage(CoreWebView2 const&, CoreWebView2WebMessageReceivedEventArgs const& args)

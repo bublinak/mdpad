@@ -55,6 +55,15 @@ namespace
         }
         return std::clamp(value, 420, 3840);
     }
+
+    AppTheme ClampTheme(int value)
+    {
+        if (value < static_cast<int>(AppTheme::System) || value > static_cast<int>(AppTheme::Dark))
+        {
+            return AppTheme::System;
+        }
+        return static_cast<AppTheme>(value);
+    }
 }
 
 AppSettings SettingsStore::Load() const
@@ -65,6 +74,8 @@ AppSettings SettingsStore::Load() const
         auto values = ApplicationData::Current().LocalSettings().Values();
         settings.openFormattedByDefault = TryGet(values, L"openFormattedByDefault", settings.openFormattedByDefault);
         settings.wordWrap = TryGet(values, L"wordWrap", settings.wordWrap);
+        settings.appTheme = ClampTheme(TryGet(values, L"appTheme", static_cast<int>(settings.appTheme)));
+        settings.transparencyPercent = std::clamp(TryGet(values, L"transparencyPercent", settings.transparencyPercent), 0, 100);
         settings.zoom = std::clamp(TryGet(values, L"zoom", settings.zoom), 0.5, 2.0);
         settings.windowWidth = ClampWindowSize(TryGet(values, L"windowWidth", settings.windowWidth), settings.windowWidth);
         settings.windowHeight = ClampWindowSize(TryGet(values, L"windowHeight", settings.windowHeight), settings.windowHeight);
@@ -90,6 +101,28 @@ AppSettings SettingsStore::Load() const
         else if (key == "wordWrap")
         {
             settings.wordWrap = value == "true";
+        }
+        else if (key == "appTheme")
+        {
+            try
+            {
+                settings.appTheme = ClampTheme(std::stoi(value));
+            }
+            catch (...)
+            {
+                settings.appTheme = AppTheme::System;
+            }
+        }
+        else if (key == "transparencyPercent")
+        {
+            try
+            {
+                settings.transparencyPercent = std::clamp(std::stoi(value), 0, 100);
+            }
+            catch (...)
+            {
+                settings.transparencyPercent = 0;
+            }
         }
         else if (key == "zoom")
         {
@@ -136,6 +169,8 @@ void SettingsStore::Save(AppSettings const& settings) const
         auto values = ApplicationData::Current().LocalSettings().Values();
         values.Insert(L"openFormattedByDefault", box_value(settings.openFormattedByDefault));
         values.Insert(L"wordWrap", box_value(settings.wordWrap));
+        values.Insert(L"appTheme", box_value(static_cast<int>(settings.appTheme)));
+        values.Insert(L"transparencyPercent", box_value(settings.transparencyPercent));
         values.Insert(L"zoom", box_value(settings.zoom));
         values.Insert(L"windowWidth", box_value(settings.windowWidth));
         values.Insert(L"windowHeight", box_value(settings.windowHeight));
@@ -147,6 +182,8 @@ void SettingsStore::Save(AppSettings const& settings) const
     std::ofstream file(path, std::ios::trunc);
     file << "openFormattedByDefault=" << (settings.openFormattedByDefault ? "true" : "false") << '\n';
     file << "wordWrap=" << (settings.wordWrap ? "true" : "false") << '\n';
+    file << "appTheme=" << static_cast<int>(settings.appTheme) << '\n';
+    file << "transparencyPercent=" << settings.transparencyPercent << '\n';
     file << "zoom=" << settings.zoom << '\n';
     file << "windowWidth=" << settings.windowWidth << '\n';
     file << "windowHeight=" << settings.windowHeight << '\n';

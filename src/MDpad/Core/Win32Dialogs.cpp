@@ -3,7 +3,13 @@
 
 namespace
 {
-    std::optional<std::filesystem::path> ShowFileDialog(HWND owner, bool save, std::filesystem::path const& currentPath)
+    enum class SaveKind
+    {
+        Markdown,
+        Html
+    };
+
+    std::optional<std::filesystem::path> ShowFileDialog(HWND owner, bool save, std::filesystem::path const& currentPath, SaveKind kind = SaveKind::Markdown)
     {
         winrt::com_ptr<IFileDialog> dialog;
 
@@ -20,19 +26,31 @@ namespace
             dialog = openDialog.as<IFileDialog>();
         }
 
-        COMDLG_FILTERSPEC const filters[] = {
+        COMDLG_FILTERSPEC const markdownFilters[] = {
             { L"Markdown files", L"*.md;*.markdown" },
             { L"Text files", L"*.txt" },
             { L"All files", L"*.*" },
         };
 
-        dialog->SetFileTypes(static_cast<UINT>(_countof(filters)), filters);
+        COMDLG_FILTERSPEC const htmlFilters[] = {
+            { L"HTML files", L"*.html;*.htm" },
+            { L"All files", L"*.*" },
+        };
+
+        if (kind == SaveKind::Html)
+        {
+            dialog->SetFileTypes(static_cast<UINT>(_countof(htmlFilters)), htmlFilters);
+        }
+        else
+        {
+            dialog->SetFileTypes(static_cast<UINT>(_countof(markdownFilters)), markdownFilters);
+        }
         dialog->SetFileTypeIndex(1);
 
         if (save)
         {
             auto saveDialog = dialog.as<IFileSaveDialog>();
-            saveDialog->SetDefaultExtension(L"md");
+            saveDialog->SetDefaultExtension(kind == SaveKind::Html ? L"html" : L"md");
         }
 
         if (!currentPath.empty())
@@ -69,6 +87,11 @@ std::optional<std::filesystem::path> ShowOpenMarkdownDialog(HWND owner)
 std::optional<std::filesystem::path> ShowSaveMarkdownDialog(HWND owner, std::filesystem::path const& currentPath)
 {
     return ShowFileDialog(owner, true, currentPath);
+}
+
+std::optional<std::filesystem::path> ShowSaveHtmlDialog(HWND owner, std::filesystem::path const& currentPath)
+{
+    return ShowFileDialog(owner, true, currentPath, SaveKind::Html);
 }
 
 int ShowDirtyPrompt(HWND owner, std::wstring const& displayName)

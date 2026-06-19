@@ -5,7 +5,7 @@
     xmlns:controls="using:Microsoft.UI.Xaml.Controls">
 
     <Window.Content>
-    <Grid Background="Transparent">
+    <Grid x:Name="RootGrid" Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="40" />
             <RowDefinition Height="Auto" />
@@ -17,6 +17,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <Button
@@ -34,6 +35,7 @@
                     <MenuFlyoutSeparator />
                     <MenuFlyoutItem Text="Save" Click="Save_Click" KeyboardAcceleratorTextOverride="Ctrl+S" />
                     <MenuFlyoutItem Text="Save As..." Click="SaveAs_Click" KeyboardAcceleratorTextOverride="Ctrl+Shift+S" />
+                    <MenuFlyoutItem Text="Save HTML..." Click="SaveHtml_Click" />
                     <MenuFlyoutSeparator />
                     <MenuFlyoutItem Text="Exit" Click="Exit_Click" />
                 </MenuBarItem>
@@ -61,6 +63,17 @@
                     <MenuFlyoutItem Text="Reset Zoom" Click="ResetZoom_Click" KeyboardAcceleratorTextOverride="Ctrl+0" />
                 </MenuBarItem>
             </MenuBar>
+
+            <Button
+                x:Name="SettingsButton"
+                Grid.Column="2"
+                Width="34"
+                Height="32"
+                Padding="0"
+                Click="Settings_Click"
+                ToolTipService.ToolTip="Settings">
+                <FontIcon Glyph="&#xE713;" FontSize="15" />
+            </Button>
         </Grid>
 
         <Border
