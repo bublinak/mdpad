@@ -1,0 +1,219 @@
+:root {
+  color-scheme: light dark;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 16px;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: transparent;
+  color: CanvasText;
+}
+
+body {
+  overflow-y: auto;
+}
+
+.markdown-body {
+  box-sizing: border-box;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 28px 34px 48px;
+  line-height: 1.62;
+  word-break: break-word;
+}
+
+.markdown-body > :first-child {
+  margin-top: 0;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  line-height: 1.22;
+  margin: 1.25em 0 0.55em;
+  font-weight: 600;
+}
+
+.markdown-body h1 {
+  font-size: 2rem;
+}
+
+.markdown-body h2 {
+  font-size: 1.45rem;
+  border-bottom: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
+  padding-bottom: 0.25rem;
+}
+
+.markdown-body h3 {
+  font-size: 1.18rem;
+}
+
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body blockquote,
+.markdown-body pre,
+.markdown-body table {
+  margin: 0.8rem 0;
+}
+
+.markdown-body blockquote {
+  border-left: 4px solid color-mix(in srgb, CanvasText 25%, transparent);
+  color: color-mix(in srgb, CanvasText 72%, transparent);
+  padding-left: 1rem;
+}
+
+.markdown-body .front-matter {
+  border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, Canvas 88%, CanvasText 12%);
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.8rem;
+}
+
+.markdown-body .front-matter summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.markdown-body .front-matter dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.45rem 0.9rem;
+  margin: 0.75rem 0 0;
+}
+
+.markdown-body .front-matter dt {
+  color: color-mix(in srgb, CanvasText 72%, transparent);
+  font-weight: 600;
+}
+
+.markdown-body .front-matter dd {
+  margin: 0;
+}
+
+.markdown-body hr {
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
+  margin: 1.4rem 0;
+}
+
+.markdown-body code {
+  font-family: "Cascadia Mono", Consolas, monospace;
+  font-size: 0.92em;
+  border-radius: 4px;
+  background: color-mix(in srgb, CanvasText 9%, transparent);
+  padding: 0.1em 0.32em;
+}
+
+.markdown-body pre {
+  overflow: auto;
+  border-radius: 6px;
+  background: color-mix(in srgb, CanvasText 7%, transparent);
+  padding: 14px 16px;
+}
+
+.markdown-body pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.markdown-body a {
+  color: LinkText;
+  text-decoration-thickness: 1px;
+}
+
+.markdown-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.markdown-body .mdpad-user-flex {
+  max-width: 100%;
+}
+
+.markdown-body .mdpad-user-flex > * {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.markdown-body .mdpad-user-flex iframe {
+  width: 100%;
+}
+
+.markdown-body iframe {
+  display: block;
+  width: min(100%, 760px);
+  min-height: 320px;
+  max-width: 100%;
+  border: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, CanvasText 7%, transparent);
+}
+
+.markdown-body .blocked-embed {
+  border: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
+  border-radius: 4px;
+  color: color-mix(in srgb, CanvasText 70%, transparent);
+  background: color-mix(in srgb, CanvasText 7%, transparent);
+  padding: 0.8rem 1rem;
+}
+
+.markdown-body table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
+  border-radius: 4px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.markdown-body th,
+.markdown-body td {
+  border: 0;
+  border-right: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
+  padding: 7px 10px;
+}
+
+.markdown-body tr > :last-child {
+  border-right: 0;
+}
+
+.markdown-body tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.markdown-body th {
+  background: color-mix(in srgb, CanvasText 6%, transparent);
+  font-weight: 600;
+}
+
+.markdown-body input[type="checkbox"] {
+  margin-right: 0.45em;
+}
+
+.find-highlight {
+  background: Highlight;
+  color: HighlightText;
+}
+
+@media (max-width: 720px) {
+  .markdown-body {
+    padding: 22px 18px 38px;
+  }
+
+  .markdown-body .mdpad-user-flex {
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  .markdown-body .mdpad-user-flex > * {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}

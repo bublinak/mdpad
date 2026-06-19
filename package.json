@@ -1,0 +1,16 @@
+{
+  "name": "mdpad-renderer-assets",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "vendor": "node scripts/vendor-renderer-assets.mjs",
+    "test": "node tests/renderer.test.mjs && powershell -NoProfile -ExecutionPolicy Bypass -File tests/native-renderer-fallback.test.ps1"
+  },
+  "dependencies": {
+    "@highlightjs/cdn-assets": "^11.11.1",
+    "dompurify": "^3.4.11",
+    "highlight.js": "^11.11.1",
+    "jsdom": "^26.1.0",
+    "katex": "^0.16.22"
+  }
+}

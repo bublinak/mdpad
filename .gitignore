@@ -1,0 +1,18 @@
+/.vs/
+/out/
+/bin/
+/dist/
+/obj/
+/packages/
+/node_modules/
+/src/MDpad/Generated Files/
+/src/MDpad/obj/
+/src/MDpad/x64/
+/src/MDpad/ARM64/
+/src/MDpad/Win32/
+/src/MDpad/AppPackages/
+*.user
+*.suo
+*.log
+*.tlog
+*.pfx
