@@ -13,20 +13,41 @@
             <RowDefinition Height="28" />
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Background="{ThemeResource LayerFillColorDefaultBrush}" Padding="4,3">
+        <Grid Grid.Row="0" Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}" Padding="4,3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Button
-                x:Name="ModeToggleButton"
-                Grid.Column="0"
-                MinWidth="104"
-                Height="32"
-                Padding="12,0"
-                Click="ToggleMode_Click" />
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" Margin="0,0,8,0">
+                <Button
+                    x:Name="ModeToggleButton"
+                    MinWidth="104"
+                    Height="32"
+                    Padding="12,0"
+                    Click="ToggleMode_Click" />
+                <Button
+                    x:Name="BackButton"
+                    Width="34"
+                    Height="32"
+                    Padding="0"
+                    Click="Back_Click"
+                    IsEnabled="False"
+                    ToolTipService.ToolTip="Back">
+                    <FontIcon Glyph="&#xE72B;" FontSize="15" />
+                </Button>
+                <Button
+                    x:Name="ForwardButton"
+                    Width="34"
+                    Height="32"
+                    Padding="0"
+                    Click="Forward_Click"
+                    IsEnabled="False"
+                    ToolTipService.ToolTip="Forward">
+                    <FontIcon Glyph="&#xE72A;" FontSize="15" />
+                </Button>
+            </StackPanel>
 
             <MenuBar Grid.Column="1" VerticalAlignment="Center">
                 <MenuBarItem Title="File">
@@ -79,7 +100,7 @@
         <Border
             x:Name="FindPanel"
             Grid.Row="1"
-            Background="{ThemeResource LayerFillColorAltBrush}"
+            Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}"
             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
             BorderThickness="0,1,0,1"
             Padding="8"
@@ -118,7 +139,7 @@
                 Visibility="Collapsed" />
         </Grid>
 
-        <Grid Grid.Row="3" Padding="10,0" Background="{ThemeResource LayerFillColorDefaultBrush}">
+        <Grid Grid.Row="3" Padding="10,0" Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />

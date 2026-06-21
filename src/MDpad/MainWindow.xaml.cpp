@@ -14,13 +14,34 @@ using namespace winrt;
 using namespace Microsoft::UI::Xaml;
 using namespace Microsoft::UI::Xaml::Controls;
 using namespace Microsoft::UI::Xaml::Controls::Primitives;
+using namespace Microsoft::UI::Xaml::Input;
 using namespace Microsoft::UI::Xaml::Media;
 using namespace Microsoft::Web::WebView2::Core;
 using namespace Windows::ApplicationModel;
 using namespace Windows::Foundation;
+using namespace Windows::System;
 
 namespace
 {
+    std::vector<winrt::MDpad::MainWindow> g_secondaryWindows;
+
+    void UntrackSecondaryWindow(void* windowAbi)
+    {
+        auto const match = std::remove_if(g_secondaryWindows.begin(), g_secondaryWindows.end(), [windowAbi](winrt::MDpad::MainWindow const& window) {
+            return get_abi(window) == windowAbi;
+        });
+        g_secondaryWindows.erase(match, g_secondaryWindows.end());
+    }
+
+    void TrackSecondaryWindow(winrt::MDpad::MainWindow const& window)
+    {
+        void* const windowAbi = get_abi(window);
+        g_secondaryWindows.push_back(window);
+        window.Closed([windowAbi](IInspectable const&, WindowEventArgs const&) {
+            UntrackSecondaryWindow(windowAbi);
+        });
+    }
+
     std::wstring ErrorText(char const* prefix, std::exception const& error)
     {
         std::wstring message = winrt::to_hstring(prefix).c_str();
@@ -73,17 +94,42 @@ namespace
         }
     }
 
-    std::wstring BuildPreviewJson(std::string_view html, std::wstring_view baseUri, double zoom, AppTheme theme)
+    std::wstring ToLower(std::wstring_view value)
     {
-        std::wstringstream payload;
-        payload << L"{"
-            << L"\"kind\":\"render\","
-            << L"\"html\":" << JsonStringUtf8(html) << L","
-            << L"\"baseUri\":" << JsonString(baseUri) << L","
-            << L"\"zoom\":" << zoom << L","
-            << L"\"theme\":" << JsonString(ThemeName(theme))
-            << L"}";
-        return payload.str();
+        std::wstring lowered(value);
+        std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](wchar_t ch) {
+            return static_cast<wchar_t>(towlower(ch));
+        });
+        return lowered;
+    }
+
+    bool StartsWithInsensitive(std::wstring_view value, std::wstring_view prefix)
+    {
+        if (value.size() < prefix.size())
+        {
+            return false;
+        }
+
+        for (size_t i = 0; i < prefix.size(); ++i)
+        {
+            if (towlower(value[i]) != towlower(prefix[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool IsDocumentVirtualUri(std::wstring_view href)
+    {
+        return StartsWithInsensitive(href, L"https://doc.mdpad.local/")
+            || StartsWithInsensitive(href, L"https://doc.mdpad.local?");
+    }
+
+    std::wstring StripQueryAndFragment(std::wstring_view value)
+    {
+        size_t const end = value.find_first_of(L"?#");
+        return std::wstring(value.substr(0, end));
     }
 
     int HexValue(wchar_t ch)
@@ -101,6 +147,56 @@ namespace
             return 10 + ch - L'A';
         }
         return -1;
+    }
+
+    std::wstring UrlDecode(std::wstring_view value)
+    {
+        std::string bytes;
+        bytes.reserve(value.size());
+
+        for (size_t i = 0; i < value.size(); ++i)
+        {
+            wchar_t const ch = value[i];
+            if (ch == L'%' && i + 2 < value.size())
+            {
+                int const high = HexValue(value[i + 1]);
+                int const low = HexValue(value[i + 2]);
+                if (high >= 0 && low >= 0)
+                {
+                    bytes.push_back(static_cast<char>((high << 4) | low));
+                    i += 2;
+                    continue;
+                }
+            }
+
+            bytes += ToUtf8(std::wstring(1, ch));
+        }
+
+        return FromUtf8(bytes);
+    }
+
+    bool IsMarkdownPath(std::filesystem::path const& path)
+    {
+        std::wstring const extension = ToLower(path.extension().wstring());
+        return extension == L".md" || extension == L".markdown";
+    }
+
+    VirtualKeyModifiers CombineModifiers(VirtualKeyModifiers left, VirtualKeyModifiers right)
+    {
+        return static_cast<VirtualKeyModifiers>(static_cast<uint32_t>(left) | static_cast<uint32_t>(right));
+    }
+
+    std::wstring BuildPreviewJson(std::string_view html, std::wstring_view baseUri, double zoom, AppTheme theme)
+    {
+        std::wstringstream payload;
+        payload << L"{"
+            << L"\"kind\":\"render\","
+            << L"\"html\":" << JsonStringUtf8(html) << L","
+            << L"\"baseUri\":" << JsonString(baseUri) << L","
+            << L"\"zoom\":" << zoom << L","
+            << L"\"theme\":" << JsonString(ThemeName(theme))
+            << L"}";
+        return payload.str();
     }
 
     std::wstring DecodeJsonString(std::wstring_view value)
@@ -185,6 +281,7 @@ namespace winrt::MDpad::implementation
     {
         SetEnvironmentVariableW(L"WEBVIEW2_DEFAULT_BACKGROUND_COLOR", L"00000000");
         InitializeComponent();
+        RegisterKeyboardAccelerators();
         SystemBackdrop(DesktopAcrylicBackdrop{});
         Closed({ this, &MainWindow::OnClosed });
         LoadSettings();
@@ -200,6 +297,7 @@ namespace winrt::MDpad::implementation
         ApplyViewMode();
         ApplyZoom();
         ApplyTitle();
+        ApplyNavigationState();
 
         InitializePreviewAsync();
     }
@@ -220,6 +318,138 @@ namespace winrt::MDpad::implementation
         core.WebMessageReceived({ this, &MainWindow::OnPreviewMessage });
         core.NavigationCompleted({ this, &MainWindow::OnPreviewNavigationCompleted });
         PreviewWebView().Source(Uri(L"https://app.mdpad.local/index.html"));
+    }
+
+    void MainWindow::RegisterKeyboardAccelerators()
+    {
+        auto add = [this](VirtualKey key, VirtualKeyModifiers modifiers, std::function<bool()> action) {
+            KeyboardAccelerator accelerator;
+            accelerator.Key(key);
+            accelerator.Modifiers(modifiers);
+            accelerator.Invoked([action = std::move(action)](KeyboardAccelerator const&, KeyboardAcceleratorInvokedEventArgs const& args) {
+                args.Handled(action());
+            });
+            RootGrid().KeyboardAccelerators().Append(accelerator);
+        };
+
+        auto invoke = [this](void (MainWindow::*handler)(IInspectable const&, RoutedEventArgs const&)) {
+            IInspectable sender{ nullptr };
+            RoutedEventArgs args{ nullptr };
+            (this->*handler)(sender, args);
+        };
+
+        add(VirtualKey::N, VirtualKeyModifiers::Control, [this, invoke] {
+            invoke(&MainWindow::New_Click);
+            return true;
+        });
+        add(VirtualKey::O, VirtualKeyModifiers::Control, [this, invoke] {
+            invoke(&MainWindow::Open_Click);
+            return true;
+        });
+        add(VirtualKey::S, VirtualKeyModifiers::Control, [this] {
+            return Save();
+        });
+        add(VirtualKey::S, CombineModifiers(VirtualKeyModifiers::Control, VirtualKeyModifiers::Shift), [this] {
+            return SaveAs();
+        });
+
+        add(VirtualKey::F, VirtualKeyModifiers::Control, [this] {
+            ShowFindPanel(false);
+            return true;
+        });
+        add(VirtualKey::H, VirtualKeyModifiers::Control, [this] {
+            if (m_viewMode != ViewMode::Syntax)
+            {
+                return false;
+            }
+
+            ShowFindPanel(true);
+            return true;
+        });
+
+        add(VirtualKey::Z, VirtualKeyModifiers::Control, [this] {
+            if (m_viewMode != ViewMode::Syntax)
+            {
+                return false;
+            }
+
+            SourceTextBox().Undo();
+            return true;
+        });
+        add(VirtualKey::Y, VirtualKeyModifiers::Control, [this] {
+            if (m_viewMode != ViewMode::Syntax)
+            {
+                return false;
+            }
+
+            SourceTextBox().Redo();
+            return true;
+        });
+        add(VirtualKey::X, VirtualKeyModifiers::Control, [this] {
+            if (m_viewMode != ViewMode::Syntax)
+            {
+                return false;
+            }
+
+            SourceTextBox().CutSelectionToClipboard();
+            return true;
+        });
+        add(VirtualKey::C, VirtualKeyModifiers::Control, [this, invoke] {
+            invoke(&MainWindow::Copy_Click);
+            return true;
+        });
+        add(VirtualKey::V, VirtualKeyModifiers::Control, [this] {
+            if (m_viewMode != ViewMode::Syntax)
+            {
+                return false;
+            }
+
+            SourceTextBox().PasteFromClipboard();
+            return true;
+        });
+        add(VirtualKey::Delete, VirtualKeyModifiers::None, [this] {
+            if (m_viewMode != ViewMode::Syntax)
+            {
+                return false;
+            }
+
+            SourceTextBox().SelectedText(L"");
+            return true;
+        });
+        add(VirtualKey::A, VirtualKeyModifiers::Control, [this, invoke] {
+            invoke(&MainWindow::SelectAll_Click);
+            return true;
+        });
+
+        add(VirtualKey::Add, VirtualKeyModifiers::Control, [this, invoke] {
+            invoke(&MainWindow::ZoomIn_Click);
+            return true;
+        });
+        add(static_cast<VirtualKey>(0xBB), VirtualKeyModifiers::Control, [this, invoke] {
+            invoke(&MainWindow::ZoomIn_Click);
+            return true;
+        });
+        add(VirtualKey::Subtract, VirtualKeyModifiers::Control, [this, invoke] {
+            invoke(&MainWindow::ZoomOut_Click);
+            return true;
+        });
+        add(static_cast<VirtualKey>(0xBD), VirtualKeyModifiers::Control, [this, invoke] {
+            invoke(&MainWindow::ZoomOut_Click);
+            return true;
+        });
+        add(VirtualKey::Number0, VirtualKeyModifiers::Control, [this, invoke] {
+            invoke(&MainWindow::ResetZoom_Click);
+            return true;
+        });
+
+        add(VirtualKey::Left, VirtualKeyModifiers::Menu, [this] {
+            NavigateHistory(-1);
+            return true;
+        });
+        add(VirtualKey::Right, VirtualKeyModifiers::Menu, [this] {
+            NavigateHistory(1);
+            return true;
+        });
     }
 
     fire_and_forget MainWindow::SaveGeneratedHtmlAsync()
@@ -337,6 +567,27 @@ namespace winrt::MDpad::implementation
             SaveSettings();
         });
 
+        TextBlock markdownLinkLabel;
+        markdownLinkLabel.Text(L"Markdown file links");
+
+        ComboBox markdownLinkBox;
+        markdownLinkBox.Width(220);
+        for (wchar_t const* label : { L"Open in new window", L"Open in current window" })
+        {
+            ComboBoxItem item;
+            item.Content(box_value(label));
+            markdownLinkBox.Items().Append(item);
+        }
+        markdownLinkBox.SelectedIndex(static_cast<int>(m_settings.markdownFileLinkOpenMode));
+        markdownLinkBox.SelectionChanged([this](IInspectable const& sender, SelectionChangedEventArgs const&) {
+            int const selected = sender.as<ComboBox>().SelectedIndex();
+            if (selected >= static_cast<int>(MarkdownFileLinkOpenMode::NewWindow) && selected <= static_cast<int>(MarkdownFileLinkOpenMode::CurrentWindow))
+            {
+                m_settings.markdownFileLinkOpenMode = static_cast<MarkdownFileLinkOpenMode>(selected);
+                SaveSettings();
+            }
+        });
+
         StackPanel links;
         links.Orientation(Orientation::Horizontal);
         links.Spacing(12);
@@ -363,6 +614,8 @@ namespace winrt::MDpad::implementation
         content.Children().Append(themeBox);
         content.Children().Append(defaultModeLabel);
         content.Children().Append(defaultModeBox);
+        content.Children().Append(markdownLinkLabel);
+        content.Children().Append(markdownLinkBox);
         content.Children().Append(links);
 
         dialog.Content(content);
@@ -370,6 +623,11 @@ namespace winrt::MDpad::implementation
     }
 
     void MainWindow::OpenPath(std::wstring const& path)
+    {
+        OpenDocumentPath(path, true);
+    }
+
+    bool MainWindow::OpenDocumentPath(std::filesystem::path const& path, bool addToHistory)
     {
         try
         {
@@ -379,10 +637,20 @@ namespace winrt::MDpad::implementation
             m_suppressTextChanged = false;
             ApplyTitle();
             RenderPreview();
+            if (addToHistory)
+            {
+                AddHistoryEntry(m_document.Path());
+            }
+            else
+            {
+                ApplyNavigationState();
+            }
+            return true;
         }
         catch (std::exception const& error)
         {
             ShowError(WindowHandle(), ErrorText("Could not open the selected file.", error));
+            return false;
         }
     }
 
@@ -397,7 +665,10 @@ namespace winrt::MDpad::implementation
         m_suppressTextChanged = true;
         SourceTextBox().Text(L"");
         m_suppressTextChanged = false;
+        m_fileHistory.clear();
+        m_historyIndex = -1;
         ApplyTitle();
+        ApplyNavigationState();
         RenderPreview();
     }
 
@@ -448,6 +719,16 @@ namespace winrt::MDpad::implementation
     void MainWindow::Settings_Click(IInspectable const&, RoutedEventArgs const&)
     {
         ShowSettingsAsync();
+    }
+
+    void MainWindow::Back_Click(IInspectable const&, RoutedEventArgs const&)
+    {
+        NavigateHistory(-1);
+    }
+
+    void MainWindow::Forward_Click(IInspectable const&, RoutedEventArgs const&)
+    {
+        NavigateHistory(1);
     }
 
     void MainWindow::ToggleMode_Click(IInspectable const&, RoutedEventArgs const&)
@@ -684,6 +965,12 @@ namespace winrt::MDpad::implementation
         SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
     }
 
+    void MainWindow::ApplyNavigationState()
+    {
+        BackButton().IsEnabled(m_historyIndex > 0);
+        ForwardButton().IsEnabled(m_historyIndex >= 0 && static_cast<size_t>(m_historyIndex + 1) < m_fileHistory.size());
+    }
+
     void MainWindow::ApplyViewMode()
     {
         bool const formatted = m_viewMode == ViewMode::Formatted;
@@ -785,6 +1072,46 @@ namespace winrt::MDpad::implementation
         PreviewWebView().CoreWebView2().PostWebMessageAsJson(m_pendingPreviewJson);
     }
 
+    void MainWindow::AddHistoryEntry(std::filesystem::path const& path)
+    {
+        std::filesystem::path normalized = std::filesystem::absolute(path).lexically_normal();
+        if (m_historyIndex >= 0 && static_cast<size_t>(m_historyIndex) < m_fileHistory.size() && m_fileHistory[m_historyIndex] == normalized)
+        {
+            ApplyNavigationState();
+            return;
+        }
+
+        if (m_historyIndex >= 0 && static_cast<size_t>(m_historyIndex + 1) < m_fileHistory.size())
+        {
+            m_fileHistory.erase(m_fileHistory.begin() + m_historyIndex + 1, m_fileHistory.end());
+        }
+
+        m_fileHistory.push_back(std::move(normalized));
+        m_historyIndex = static_cast<int>(m_fileHistory.size()) - 1;
+        ApplyNavigationState();
+    }
+
+    void MainWindow::NavigateHistory(int offset)
+    {
+        int const targetIndex = m_historyIndex + offset;
+        if (targetIndex < 0 || static_cast<size_t>(targetIndex) >= m_fileHistory.size())
+        {
+            return;
+        }
+
+        if (!ConfirmDiscardIfDirty())
+        {
+            return;
+        }
+
+        std::filesystem::path const target = m_fileHistory[targetIndex];
+        if (OpenDocumentPath(target, false))
+        {
+            m_historyIndex = targetIndex;
+            ApplyNavigationState();
+        }
+    }
+
     bool MainWindow::ConfirmDiscardIfDirty()
     {
         if (!m_document.IsDirty())
@@ -838,6 +1165,7 @@ namespace winrt::MDpad::implementation
 
             m_document.SaveAs(*path);
             ApplyTitle();
+            AddHistoryEntry(m_document.Path());
             return true;
         }
         catch (std::exception const& error)
@@ -875,7 +1203,7 @@ namespace winrt::MDpad::implementation
         std::wstring const message = args.TryGetWebMessageAsString().c_str();
         if (auto href = StripMessagePrefix(message, L"open-link:"); !href.empty())
         {
-            OpenExternalLink(href);
+            OpenPreviewLink(href);
         }
     }
 
@@ -883,6 +1211,134 @@ namespace winrt::MDpad::implementation
     {
         m_previewReady = true;
         RenderPreview();
+    }
+
+    void MainWindow::OpenPreviewLink(std::wstring const& href)
+    {
+        if (IsDocumentVirtualUri(href))
+        {
+            auto path = ResolveDocumentFileLink(href);
+            if (!path)
+            {
+                StatusTextBlock().Text(L"Could not resolve the local file link.");
+                return;
+            }
+
+            OpenLocalFileLink(*path);
+            return;
+        }
+
+        if (auto path = ResolveFileUri(href))
+        {
+            OpenLocalFileLink(*path);
+            return;
+        }
+
+        OpenExternalLink(href);
+    }
+
+    std::optional<std::filesystem::path> MainWindow::ResolveDocumentFileLink(std::wstring const& href) const
+    {
+        if (!m_document.HasPath())
+        {
+            return std::nullopt;
+        }
+
+        std::wstring_view value(href);
+        constexpr std::wstring_view prefix = L"https://doc.mdpad.local/";
+        if (!StartsWithInsensitive(value, prefix))
+        {
+            return std::nullopt;
+        }
+
+        std::wstring pathPart = StripQueryAndFragment(value.substr(prefix.size()));
+        while (!pathPart.empty() && (pathPart.front() == L'/' || pathPart.front() == L'\\'))
+        {
+            pathPart.erase(pathPart.begin());
+        }
+
+        if (pathPart.empty())
+        {
+            return std::nullopt;
+        }
+
+        std::wstring decoded = UrlDecode(pathPart);
+        std::replace(decoded.begin(), decoded.end(), L'/', std::filesystem::path::preferred_separator);
+        return (m_document.Directory() / decoded).lexically_normal();
+    }
+
+    std::optional<std::filesystem::path> MainWindow::ResolveFileUri(std::wstring const& href) const
+    {
+        std::wstring_view value(href);
+        std::wstring pathPart;
+
+        if (StartsWithInsensitive(value, L"file:///"))
+        {
+            pathPart = StripQueryAndFragment(value.substr(8));
+        }
+        else if (StartsWithInsensitive(value, L"file://localhost/"))
+        {
+            pathPart = StripQueryAndFragment(value.substr(17));
+        }
+        else if (StartsWithInsensitive(value, L"file://"))
+        {
+            pathPart = L"\\\\" + StripQueryAndFragment(value.substr(7));
+        }
+        else
+        {
+            return std::nullopt;
+        }
+
+        if (pathPart.empty())
+        {
+            return std::nullopt;
+        }
+
+        std::wstring decoded = UrlDecode(pathPart);
+        std::replace(decoded.begin(), decoded.end(), L'/', std::filesystem::path::preferred_separator);
+        return std::filesystem::path(decoded).lexically_normal();
+    }
+
+    void MainWindow::OpenLocalFileLink(std::filesystem::path const& path)
+    {
+        std::filesystem::path normalized = std::filesystem::absolute(path).lexically_normal();
+        std::error_code existsError;
+        if (!std::filesystem::exists(normalized, existsError))
+        {
+            StatusTextBlock().Text(L"File link not found: " + normalized.wstring());
+            return;
+        }
+
+        if (IsMarkdownPath(normalized))
+        {
+            if (m_settings.markdownFileLinkOpenMode == MarkdownFileLinkOpenMode::CurrentWindow)
+            {
+                if (!ConfirmDiscardIfDirty())
+                {
+                    return;
+                }
+
+                OpenDocumentPath(normalized, true);
+            }
+            else
+            {
+                OpenMarkdownFileInNewWindow(normalized);
+            }
+            return;
+        }
+
+        std::wstring const target = normalized.wstring();
+        std::wstring const directory = normalized.parent_path().wstring();
+        ShellExecuteW(WindowHandle(), L"open", target.c_str(), nullptr, directory.c_str(), SW_SHOWNORMAL);
+    }
+
+    void MainWindow::OpenMarkdownFileInNewWindow(std::filesystem::path const& path)
+    {
+        winrt::MDpad::MainWindow window = make<MainWindow>();
+        TrackSecondaryWindow(window);
+        window.Activate();
+        auto windowImpl = get_self<MainWindow>(window);
+        windowImpl->OpenPath(path.wstring());
     }
 
     void MainWindow::OpenExternalLink(std::wstring const& href)

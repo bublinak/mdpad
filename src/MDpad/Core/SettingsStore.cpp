@@ -64,6 +64,15 @@ namespace
         }
         return static_cast<AppTheme>(value);
     }
+
+    MarkdownFileLinkOpenMode ClampMarkdownFileLinkOpenMode(int value)
+    {
+        if (value < static_cast<int>(MarkdownFileLinkOpenMode::NewWindow) || value > static_cast<int>(MarkdownFileLinkOpenMode::CurrentWindow))
+        {
+            return MarkdownFileLinkOpenMode::NewWindow;
+        }
+        return static_cast<MarkdownFileLinkOpenMode>(value);
+    }
 }
 
 AppSettings SettingsStore::Load() const
@@ -75,6 +84,7 @@ AppSettings SettingsStore::Load() const
         settings.openFormattedByDefault = TryGet(values, L"openFormattedByDefault", settings.openFormattedByDefault);
         settings.wordWrap = TryGet(values, L"wordWrap", settings.wordWrap);
         settings.appTheme = ClampTheme(TryGet(values, L"appTheme", static_cast<int>(settings.appTheme)));
+        settings.markdownFileLinkOpenMode = ClampMarkdownFileLinkOpenMode(TryGet(values, L"markdownFileLinkOpenMode", static_cast<int>(settings.markdownFileLinkOpenMode)));
         settings.transparencyPercent = std::clamp(TryGet(values, L"transparencyPercent", settings.transparencyPercent), 0, 100);
         settings.zoom = std::clamp(TryGet(values, L"zoom", settings.zoom), 0.5, 2.0);
         settings.windowWidth = ClampWindowSize(TryGet(values, L"windowWidth", settings.windowWidth), settings.windowWidth);
@@ -124,6 +134,17 @@ AppSettings SettingsStore::Load() const
                 settings.transparencyPercent = 0;
             }
         }
+        else if (key == "markdownFileLinkOpenMode")
+        {
+            try
+            {
+                settings.markdownFileLinkOpenMode = ClampMarkdownFileLinkOpenMode(std::stoi(value));
+            }
+            catch (...)
+            {
+                settings.markdownFileLinkOpenMode = MarkdownFileLinkOpenMode::NewWindow;
+            }
+        }
         else if (key == "zoom")
         {
             try
@@ -170,6 +191,7 @@ void SettingsStore::Save(AppSettings const& settings) const
         values.Insert(L"openFormattedByDefault", box_value(settings.openFormattedByDefault));
         values.Insert(L"wordWrap", box_value(settings.wordWrap));
         values.Insert(L"appTheme", box_value(static_cast<int>(settings.appTheme)));
+        values.Insert(L"markdownFileLinkOpenMode", box_value(static_cast<int>(settings.markdownFileLinkOpenMode)));
         values.Insert(L"transparencyPercent", box_value(settings.transparencyPercent));
         values.Insert(L"zoom", box_value(settings.zoom));
         values.Insert(L"windowWidth", box_value(settings.windowWidth));
@@ -183,6 +205,7 @@ void SettingsStore::Save(AppSettings const& settings) const
     file << "openFormattedByDefault=" << (settings.openFormattedByDefault ? "true" : "false") << '\n';
     file << "wordWrap=" << (settings.wordWrap ? "true" : "false") << '\n';
     file << "appTheme=" << static_cast<int>(settings.appTheme) << '\n';
+    file << "markdownFileLinkOpenMode=" << static_cast<int>(settings.markdownFileLinkOpenMode) << '\n';
     file << "transparencyPercent=" << settings.transparencyPercent << '\n';
     file << "zoom=" << settings.zoom << '\n';
     file << "windowWidth=" << settings.windowWidth << '\n';

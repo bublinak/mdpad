@@ -7,11 +7,18 @@ enum class AppTheme
     Dark = 2
 };
 
+enum class MarkdownFileLinkOpenMode
+{
+    NewWindow = 0,
+    CurrentWindow = 1
+};
+
 struct AppSettings
 {
     bool openFormattedByDefault{ true };
     bool wordWrap{ true };
     AppTheme appTheme{ AppTheme::System };
+    MarkdownFileLinkOpenMode markdownFileLinkOpenMode{ MarkdownFileLinkOpenMode::NewWindow };
     int transparencyPercent{ 0 };
     double zoom{ 1.0 };
     int windowWidth{ 780 };

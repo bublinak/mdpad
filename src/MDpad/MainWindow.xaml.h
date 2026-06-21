@@ -26,6 +26,8 @@ namespace winrt::MDpad::implementation
         void SaveHtml_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void Exit_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void Settings_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void Back_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void Forward_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void ToggleMode_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void OpenFormattedByDefault_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void WordWrap_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
@@ -51,12 +53,14 @@ namespace winrt::MDpad::implementation
         fire_and_forget InitializePreviewAsync();
         fire_and_forget SaveGeneratedHtmlAsync();
         fire_and_forget ShowSettingsAsync();
+        void RegisterKeyboardAccelerators();
         void LoadSettings();
         void SaveSettings();
         void ApplyWindowSize();
         void SaveWindowSize();
         void ApplyAppTheme();
         void ApplyTransparency();
+        void ApplyNavigationState();
         void ApplyViewMode();
         void ApplyEditCommandState();
         void ApplyTitle();
@@ -64,6 +68,9 @@ namespace winrt::MDpad::implementation
         void RenderPreview();
         bool EnsureDocumentResourceMapping();
         void PostPreviewPayload();
+        bool OpenDocumentPath(std::filesystem::path const& path, bool addToHistory);
+        void AddHistoryEntry(std::filesystem::path const& path);
+        void NavigateHistory(int offset);
         bool ConfirmDiscardIfDirty();
         bool Save();
         bool SaveAs();
@@ -71,6 +78,11 @@ namespace winrt::MDpad::implementation
         std::filesystem::path SuggestedHtmlPath() const;
         void OnPreviewMessage(Microsoft::Web::WebView2::Core::CoreWebView2 const& sender, Microsoft::Web::WebView2::Core::CoreWebView2WebMessageReceivedEventArgs const& args);
         void OnPreviewNavigationCompleted(Microsoft::Web::WebView2::Core::CoreWebView2 const& sender, Microsoft::Web::WebView2::Core::CoreWebView2NavigationCompletedEventArgs const& args);
+        void OpenPreviewLink(std::wstring const& href);
+        std::optional<std::filesystem::path> ResolveDocumentFileLink(std::wstring const& href) const;
+        std::optional<std::filesystem::path> ResolveFileUri(std::wstring const& href) const;
+        void OpenLocalFileLink(std::filesystem::path const& path);
+        void OpenMarkdownFileInNewWindow(std::filesystem::path const& path);
         void OpenExternalLink(std::wstring const& href);
         void ShowFindPanel(bool replaceMode);
         bool FindNext();
@@ -80,8 +92,10 @@ namespace winrt::MDpad::implementation
         SettingsStore m_settingsStore;
         AppSettings m_settings{};
         ViewMode m_viewMode{ ViewMode::Formatted };
+        std::vector<std::filesystem::path> m_fileHistory;
         std::filesystem::path m_mappedDocumentDirectory;
         std::wstring m_pendingPreviewJson;
+        int m_historyIndex{ -1 };
         bool m_previewReady{ false };
         bool m_suppressTextChanged{ false };
     };

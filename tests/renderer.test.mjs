@@ -35,6 +35,7 @@ dom.window.__mdpadRenderer.render({
     <h1>Hello</h1>
     <script>window.bad = true</script>
     <p><a href="https://example.com/docs">Link</a></p>
+    <p><a id="local-link" href="docs/next file.md#part">Local doc</a></p>
     <p><img alt="diagram" src="images/a.png" onerror="window.bad = true" onmouseover="window.bad = true"></p>
     <p><img alt="bad" src="javascript:window.bad = true"></p>
     <div id="layout" style="width: 100%; display: flex; justify-content: center; align-items: center; position: fixed; z-index: 999; background-image: url(javascript:bad);">
@@ -104,7 +105,11 @@ assert.ok(document.querySelector(".katex"));
 assert.ok(document.querySelector("code").className.includes("hljs"));
 
 document.querySelector("a").dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true }));
-assert.deepEqual(posted, ["open-link:https://example.com/docs"]);
+document.getElementById("local-link").dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true }));
+assert.deepEqual(posted, [
+  "open-link:https://example.com/docs",
+  "open-link:https://doc.mdpad.local/docs/next%20file.md#part"
+]);
 
 assert.equal(dom.window.mdpadFind("hello"), true);
 assert.ok(document.querySelector(".find-highlight"));

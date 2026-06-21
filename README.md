@@ -11,19 +11,33 @@ This repository was generated and iteratively modified with AI assistance from O
 - Windows 11 Notepad-style shell with `File`, `Edit`, and `View` menus.
 - Top-left toggle between formatted preview and Markdown syntax/source mode.
 - One document per window.
+- Real keyboard shortcuts for file, edit, find, zoom, and navigation commands.
 - Fast startup path: native Markdown rendering first, then deferred WebView hydration for heavier features.
 - Markdown support through `cmark-gfm` when available, including headings, lists, tables, task lists, fenced code, links, and images.
 - KaTeX math rendering for inline and display equations.
 - highlight.js syntax highlighting for rendered code blocks.
 - Relative image and iframe paths resolved against the opened Markdown file folder.
+- Local Markdown file links open in MDpad, with a setting for new-window or current-window behavior.
+- Back and forward buttons move through the current window's Markdown file history.
+- Acrylic-backed app shell with transparent editor and preview surfaces.
 - Sanitized raw HTML support for common document markup, including `div`, `img`, and `iframe`.
 - Safe inline CSS subset for layout-oriented HTML, including side-by-side iframe layouts.
 - Generated preview HTML export from the `File` menu.
-- Settings dialog for theme, startup mode, and transparency effect.
+- Settings dialog for theme, startup mode, Markdown file-link behavior, and transparency effect.
 - `.md` and `.markdown` file associations in the packaged app manifest.
 - Self-contained Windows App SDK release package.
 
 ## Releases
+
+### v1.3
+
+Adds navigation polish and shortcut fixes:
+
+- Real keyboard accelerator handling for file, edit, find/replace, zoom, and history commands.
+- Acrylic-aware chrome over the Windows 11 desktop acrylic backdrop.
+- Local Markdown file links open in MDpad instead of being sent to the browser.
+- Settings option for opening Markdown file links in a new window or the current window.
+- Back and forward buttons for Markdown file history, including dirty-state prompts before replacing the active document.
 
 ### v1.2
 
@@ -99,6 +113,7 @@ MDpad previews local Markdown through WebView2, so raw HTML is intentionally con
 
 - Scripts, event handlers, `object`, `embed`, and unsafe resource schemes are blocked.
 - External links are intercepted and opened through the Windows default browser.
+- Document-local Markdown links are resolved against the active Markdown file folder before any browser handoff.
 - Iframes are limited to HTTP(S) and sandboxed.
 - Inline CSS is restricted to a small layout-oriented subset. Script-like CSS, external CSS URLs, fixed positioning, z-index overlays, animations, filters, and arbitrary visual styling are stripped.
 - Preview mode is read-only. Saving always writes plain Markdown from source mode.

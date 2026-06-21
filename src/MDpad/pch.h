@@ -8,12 +8,14 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <functional>
 #include <fstream>
 #include <memory>
 #include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <vector>
 
 #include <winrt/Windows.ApplicationModel.h>
@@ -22,6 +24,7 @@
 #include <winrt/Windows.Foundation.Collections.h>
 #include <winrt/Windows.Storage.h>
 #include <winrt/Windows.Storage.Streams.h>
+#include <winrt/Windows.System.h>
 
 #ifdef GetCurrentTime
 #undef GetCurrentTime
