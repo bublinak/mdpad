@@ -44,3 +44,7 @@ await copy(
   path.join(root, "node_modules", "@highlightjs", "cdn-assets", "highlight.min.js"),
   path.join(renderer, "highlight", "highlight.min.js")
 );
+await copy(
+  path.join(root, "node_modules", "mermaid", "dist", "mermaid.min.js"),
+  path.join(renderer, "mermaid", "mermaid.min.js")
+);

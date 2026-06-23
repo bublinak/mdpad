@@ -51,8 +51,10 @@
     ["width", (value) => isSize(value, { allowAuto: true })]
   ]);
   let currentBase = "";
+  let currentTheme = "system";
   let lastQuery = "";
   let lastMatchIndex = -1;
+  let mermaidSequence = 0;
 
   function sanitize(html) {
     if (!window.DOMPurify) {
@@ -179,6 +181,7 @@
   function applyTheme(theme) {
     const normalized = theme === "light" || theme === "dark" ? theme : "system";
     const root = document.documentElement;
+    currentTheme = normalized;
 
     if (normalized === "system") {
       root.removeAttribute("data-mdpad-theme");
@@ -378,8 +381,61 @@
       return;
     }
 
-    for (const block of content.querySelectorAll("pre code")) {
+    for (const block of content.querySelectorAll("pre code:not(.language-mermaid):not(.lang-mermaid)")) {
       window.hljs.highlightElement(block);
+    }
+  }
+
+  function resolvedMermaidTheme() {
+    if (currentTheme === "dark") {
+      return "dark";
+    }
+    if (currentTheme === "system" && window.matchMedia?.("(prefers-color-scheme: dark)")?.matches) {
+      return "dark";
+    }
+    return "default";
+  }
+
+  async function hydrateMermaid() {
+    if (!window.mermaid?.render) {
+      return;
+    }
+
+    const blocks = Array.from(content.querySelectorAll("pre > code.language-mermaid, pre > code.lang-mermaid"));
+    if (blocks.length === 0) {
+      return;
+    }
+
+    window.mermaid.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: resolvedMermaidTheme()
+    });
+
+    for (const block of blocks) {
+      const source = block.textContent || "";
+      const wrapper = document.createElement("div");
+      wrapper.className = "mermaid-block";
+      const diagram = document.createElement("div");
+      diagram.className = "mermaid";
+      wrapper.appendChild(diagram);
+      block.closest("pre")?.replaceWith(wrapper);
+
+      try {
+        const id = `mdpad-mermaid-${Date.now()}-${mermaidSequence++}`;
+        const result = await window.mermaid.render(id, source);
+        diagram.innerHTML = result.svg || "";
+        result.bindFunctions?.(diagram);
+      } catch (error) {
+        wrapper.classList.add("mermaid-error");
+        const message = document.createElement("div");
+        message.textContent = "Could not render Mermaid diagram";
+        const pre = document.createElement("pre");
+        const code = document.createElement("code");
+        code.textContent = source;
+        pre.appendChild(code);
+        wrapper.replaceChildren(message, pre);
+      }
     }
   }
 
@@ -417,8 +473,11 @@
       hydrateLinks();
     });
 
-    setTimeout(hydrateCode, 0);
-    setTimeout(hydrateMath, 16);
+    setTimeout(() => {
+      hydrateMermaid();
+    }, 0);
+    setTimeout(hydrateCode, 16);
+    setTimeout(hydrateMath, 32);
   }
 
   function clearFindHighlights() {

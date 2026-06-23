@@ -129,6 +129,32 @@ body {
   padding: 0;
 }
 
+.markdown-body .mermaid-block {
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, CanvasText 14%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, CanvasText 5%, transparent);
+  padding: 1rem;
+}
+
+.markdown-body .mermaid {
+  min-width: min-content;
+  text-align: center;
+}
+
+.markdown-body .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown-body .mermaid-error {
+  color: color-mix(in srgb, CanvasText 74%, transparent);
+}
+
+.markdown-body .mermaid-error pre {
+  margin-bottom: 0;
+}
+
 .markdown-body a {
   color: LinkText;
   text-decoration-thickness: 1px;

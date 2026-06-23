@@ -59,7 +59,7 @@ namespace winrt::MDpad::implementation
         void ApplyWindowSize();
         void SaveWindowSize();
         void ApplyAppTheme();
-        void ApplyTransparency();
+        void ApplyAcrylicEffect();
         void ApplyNavigationState();
         void ApplyViewMode();
         void ApplyEditCommandState();
@@ -98,6 +98,7 @@ namespace winrt::MDpad::implementation
         int m_historyIndex{ -1 };
         bool m_previewReady{ false };
         bool m_suppressTextChanged{ false };
+        bool m_acrylicBackdropEnabled{ false };
     };
 }
 

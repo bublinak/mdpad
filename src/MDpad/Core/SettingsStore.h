@@ -19,7 +19,7 @@ struct AppSettings
     bool wordWrap{ true };
     AppTheme appTheme{ AppTheme::System };
     MarkdownFileLinkOpenMode markdownFileLinkOpenMode{ MarkdownFileLinkOpenMode::NewWindow };
-    int transparencyPercent{ 0 };
+    int acrylicOpacityPercent{ 70 };
     double zoom{ 1.0 };
     int windowWidth{ 780 };
     int windowHeight{ 560 };

@@ -28,6 +28,13 @@ $$
 \int_0^1 x^2 dx = \frac{1}{3}
 $$
 
+## Mermaid
+
+```mermaid
+flowchart LR
+  A[Markdown] --> B[Preview]
+```
+
 ## Image
 
 ![Local image](images/sample.png)

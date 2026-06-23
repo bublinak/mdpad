@@ -13,7 +13,7 @@
             <RowDefinition Height="28" />
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}" Padding="4,3">
+        <Grid Grid.Row="0" Background="{ThemeResource LayerFillColorDefaultBrush}" Padding="4,3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
@@ -100,7 +100,7 @@
         <Border
             x:Name="FindPanel"
             Grid.Row="1"
-            Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}"
+            Background="{ThemeResource LayerFillColorDefaultBrush}"
             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
             BorderThickness="0,1,0,1"
             Padding="8"
@@ -122,7 +122,12 @@
             </Grid>
         </Border>
 
-        <Grid Grid.Row="2">
+        <Grid x:Name="DocumentSurfaceGrid" Grid.Row="2" Background="{ThemeResource LayerFillColorDefaultBrush}">
+            <Border
+                x:Name="DocumentAcrylicLayer"
+                Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
+                IsHitTestVisible="False"
+                Opacity="0.7" />
             <controls:WebView2
                 x:Name="PreviewWebView"
                 DefaultBackgroundColor="Transparent" />
@@ -139,7 +144,7 @@
                 Visibility="Collapsed" />
         </Grid>
 
-        <Grid Grid.Row="3" Padding="10,0" Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}">
+        <Grid Grid.Row="3" Padding="10,0" Background="{ThemeResource LayerFillColorDefaultBrush}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />

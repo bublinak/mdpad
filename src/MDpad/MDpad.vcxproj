@@ -171,6 +171,7 @@
     <Content Include="Assets\renderer\vendor\katex\auto-render.min.js" />
     <Content Include="Assets\renderer\vendor\katex\katex.min.css" />
     <Content Include="Assets\renderer\vendor\katex\katex.min.js" />
+    <Content Include="Assets\renderer\vendor\mermaid\mermaid.min.js" />
     <Content Include="Assets\*.png" />
     <None Include="Assets\MDpad.ico" />
   </ItemGroup>

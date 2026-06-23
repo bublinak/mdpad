@@ -282,12 +282,11 @@ namespace winrt::MDpad::implementation
         SetEnvironmentVariableW(L"WEBVIEW2_DEFAULT_BACKGROUND_COLOR", L"00000000");
         InitializeComponent();
         RegisterKeyboardAccelerators();
-        SystemBackdrop(DesktopAcrylicBackdrop{});
         Closed({ this, &MainWindow::OnClosed });
         LoadSettings();
         ApplyWindowSize();
         ApplyAppTheme();
-        ApplyTransparency();
+        ApplyAcrylicEffect();
 
         m_viewMode = m_settings.openFormattedByDefault ? ViewMode::Formatted : ViewMode::Syntax;
         m_suppressTextChanged = true;
@@ -511,18 +510,18 @@ namespace winrt::MDpad::implementation
         content.Spacing(14);
         content.Width(360);
 
-        TextBlock transparencyLabel;
-        transparencyLabel.Text(L"Transparency effect: " + to_hstring(m_settings.transparencyPercent) + L"%");
+        TextBlock acrylicLabel;
+        acrylicLabel.Text(L"Acrylic background: " + to_hstring(m_settings.acrylicOpacityPercent) + L"%");
 
-        Slider transparencySlider;
-        transparencySlider.Minimum(0);
-        transparencySlider.Maximum(100);
-        transparencySlider.StepFrequency(1);
-        transparencySlider.Value(static_cast<double>(m_settings.transparencyPercent));
-        transparencySlider.ValueChanged([this, transparencyLabel](IInspectable const&, RangeBaseValueChangedEventArgs const& args) {
-            m_settings.transparencyPercent = std::clamp(static_cast<int>(std::round(args.NewValue())), 0, 100);
-            transparencyLabel.Text(L"Transparency effect: " + to_hstring(m_settings.transparencyPercent) + L"%");
-            ApplyTransparency();
+        Slider acrylicSlider;
+        acrylicSlider.Minimum(0);
+        acrylicSlider.Maximum(100);
+        acrylicSlider.StepFrequency(1);
+        acrylicSlider.Value(static_cast<double>(m_settings.acrylicOpacityPercent));
+        acrylicSlider.ValueChanged([this, acrylicLabel](IInspectable const&, RangeBaseValueChangedEventArgs const& args) {
+            m_settings.acrylicOpacityPercent = std::clamp(static_cast<int>(std::round(args.NewValue())), 0, 100);
+            acrylicLabel.Text(L"Acrylic background: " + to_hstring(m_settings.acrylicOpacityPercent) + L"%");
+            ApplyAcrylicEffect();
             SaveSettings();
         });
 
@@ -608,8 +607,8 @@ namespace winrt::MDpad::implementation
         links.Children().Append(githubLink);
         links.Children().Append(licenseLink);
 
-        content.Children().Append(transparencyLabel);
-        content.Children().Append(transparencySlider);
+        content.Children().Append(acrylicLabel);
+        content.Children().Append(acrylicSlider);
         content.Children().Append(themeLabel);
         content.Children().Append(themeBox);
         content.Children().Append(defaultModeLabel);
@@ -949,20 +948,24 @@ namespace winrt::MDpad::implementation
         RootGrid().RequestedTheme(theme);
     }
 
-    void MainWindow::ApplyTransparency()
+    void MainWindow::ApplyAcrylicEffect()
     {
-        HWND const hwnd = WindowHandle();
-        if (!hwnd)
+        int const opacity = std::clamp(m_settings.acrylicOpacityPercent, 0, 100);
+        bool const enabled = opacity > 0;
+        if (enabled != m_acrylicBackdropEnabled)
         {
-            return;
+            if (enabled)
+            {
+                SystemBackdrop(DesktopAcrylicBackdrop{});
+            }
+            else
+            {
+                SystemBackdrop(nullptr);
+            }
+            m_acrylicBackdropEnabled = enabled;
         }
 
-        int const transparency = std::clamp(m_settings.transparencyPercent, 0, 100);
-        LONG_PTR const style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
-        SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style | WS_EX_LAYERED);
-
-        BYTE const alpha = static_cast<BYTE>(std::clamp(255 - static_cast<int>(std::round(transparency * 1.55)), 100, 255));
-        SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
+        DocumentAcrylicLayer().Opacity(enabled ? opacity / 100.0 : 0.0);
     }
 
     void MainWindow::ApplyNavigationState()

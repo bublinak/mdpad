@@ -16,18 +16,29 @@ This repository was generated and iteratively modified with AI assistance from O
 - Markdown support through `cmark-gfm` when available, including headings, lists, tables, task lists, fenced code, links, and images.
 - KaTeX math rendering for inline and display equations.
 - highlight.js syntax highlighting for rendered code blocks.
+- Mermaid diagram rendering for fenced `mermaid` code blocks.
 - Relative image and iframe paths resolved against the opened Markdown file folder.
 - Local Markdown file links open in MDpad, with a setting for new-window or current-window behavior.
 - Back and forward buttons move through the current window's Markdown file history.
-- Acrylic-backed app shell with transparent editor and preview surfaces.
+- Opaque app chrome with an optional acrylic-backed document surface.
 - Sanitized raw HTML support for common document markup, including `div`, `img`, and `iframe`.
 - Safe inline CSS subset for layout-oriented HTML, including side-by-side iframe layouts.
 - Generated preview HTML export from the `File` menu.
-- Settings dialog for theme, startup mode, Markdown file-link behavior, and transparency effect.
+- Settings dialog for theme, startup mode, Markdown file-link behavior, and document acrylic opacity.
 - `.md` and `.markdown` file associations in the packaged app manifest.
 - Self-contained Windows App SDK release package.
 
 ## Releases
+
+### v1.4
+
+Adds document-surface acrylic control and Mermaid diagrams:
+
+- Replaces whole-window transparency with an acrylic opacity slider for the inner editor/preview area.
+- `0%` acrylic opacity disables the acrylic backdrop to reduce system resource use.
+- Keeps the window chrome opaque while the document surface can use acrylic.
+- Adds Mermaid rendering for fenced `mermaid` code blocks.
+- Bundles Mermaid with the packaged renderer and covers Mermaid hydration in renderer tests.
 
 ### v1.3
 
@@ -105,7 +116,7 @@ npm test
 .\scripts\validate.ps1
 ```
 
-The test suite covers renderer sanitization, link policy, image and iframe resource handling, math hydration, code highlighting, and the native fallback Markdown renderer.
+The test suite covers renderer sanitization, link policy, image and iframe resource handling, math hydration, code highlighting, Mermaid hydration, and the native fallback Markdown renderer.
 
 ## Security Model
 
@@ -115,6 +126,7 @@ MDpad previews local Markdown through WebView2, so raw HTML is intentionally con
 - External links are intercepted and opened through the Windows default browser.
 - Document-local Markdown links are resolved against the active Markdown file folder before any browser handoff.
 - Iframes are limited to HTTP(S) and sandboxed.
+- Mermaid diagrams run through Mermaid's strict security mode.
 - Inline CSS is restricted to a small layout-oriented subset. Script-like CSS, external CSS URLs, fixed positioning, z-index overlays, animations, filters, and arbitrary visual styling are stripped.
 - Preview mode is read-only. Saving always writes plain Markdown from source mode.
 

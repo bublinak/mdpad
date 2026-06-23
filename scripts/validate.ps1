@@ -14,6 +14,7 @@ foreach ($asset in @(
     "src\MDpad\Assets\renderer\vendor\highlight\highlight.min.js",
     "src\MDpad\Assets\renderer\vendor\highlight\github-dark.min.css",
     "src\MDpad\Assets\renderer\vendor\katex\katex.min.js",
+    "src\MDpad\Assets\renderer\vendor\mermaid\mermaid.min.js",
     "tests\fixtures\images\sample.png"
 )) {
     if (-not (Test-Path $asset)) {

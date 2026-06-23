@@ -85,7 +85,7 @@ AppSettings SettingsStore::Load() const
         settings.wordWrap = TryGet(values, L"wordWrap", settings.wordWrap);
         settings.appTheme = ClampTheme(TryGet(values, L"appTheme", static_cast<int>(settings.appTheme)));
         settings.markdownFileLinkOpenMode = ClampMarkdownFileLinkOpenMode(TryGet(values, L"markdownFileLinkOpenMode", static_cast<int>(settings.markdownFileLinkOpenMode)));
-        settings.transparencyPercent = std::clamp(TryGet(values, L"transparencyPercent", settings.transparencyPercent), 0, 100);
+        settings.acrylicOpacityPercent = std::clamp(TryGet(values, L"acrylicOpacityPercent", settings.acrylicOpacityPercent), 0, 100);
         settings.zoom = std::clamp(TryGet(values, L"zoom", settings.zoom), 0.5, 2.0);
         settings.windowWidth = ClampWindowSize(TryGet(values, L"windowWidth", settings.windowWidth), settings.windowWidth);
         settings.windowHeight = ClampWindowSize(TryGet(values, L"windowHeight", settings.windowHeight), settings.windowHeight);
@@ -123,15 +123,15 @@ AppSettings SettingsStore::Load() const
                 settings.appTheme = AppTheme::System;
             }
         }
-        else if (key == "transparencyPercent")
+        else if (key == "acrylicOpacityPercent")
         {
             try
             {
-                settings.transparencyPercent = std::clamp(std::stoi(value), 0, 100);
+                settings.acrylicOpacityPercent = std::clamp(std::stoi(value), 0, 100);
             }
             catch (...)
             {
-                settings.transparencyPercent = 0;
+                settings.acrylicOpacityPercent = 70;
             }
         }
         else if (key == "markdownFileLinkOpenMode")
@@ -192,7 +192,7 @@ void SettingsStore::Save(AppSettings const& settings) const
         values.Insert(L"wordWrap", box_value(settings.wordWrap));
         values.Insert(L"appTheme", box_value(static_cast<int>(settings.appTheme)));
         values.Insert(L"markdownFileLinkOpenMode", box_value(static_cast<int>(settings.markdownFileLinkOpenMode)));
-        values.Insert(L"transparencyPercent", box_value(settings.transparencyPercent));
+        values.Insert(L"acrylicOpacityPercent", box_value(settings.acrylicOpacityPercent));
         values.Insert(L"zoom", box_value(settings.zoom));
         values.Insert(L"windowWidth", box_value(settings.windowWidth));
         values.Insert(L"windowHeight", box_value(settings.windowHeight));
@@ -206,7 +206,7 @@ void SettingsStore::Save(AppSettings const& settings) const
     file << "wordWrap=" << (settings.wordWrap ? "true" : "false") << '\n';
     file << "appTheme=" << static_cast<int>(settings.appTheme) << '\n';
     file << "markdownFileLinkOpenMode=" << static_cast<int>(settings.markdownFileLinkOpenMode) << '\n';
-    file << "transparencyPercent=" << settings.transparencyPercent << '\n';
+    file << "acrylicOpacityPercent=" << settings.acrylicOpacityPercent << '\n';
     file << "zoom=" << settings.zoom << '\n';
     file << "windowWidth=" << settings.windowWidth << '\n';
     file << "windowHeight=" << settings.windowHeight << '\n';

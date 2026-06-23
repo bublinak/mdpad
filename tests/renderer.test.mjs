@@ -23,6 +23,13 @@ dom.window.DOMPurify = createDOMPurify(dom.window);
 dom.window.hljs = hljs;
 dom.window.katex = katex;
 dom.window.renderMathInElement = renderMathInElement;
+dom.window.mermaid = {
+  initialize: () => {},
+  render: async (_id, source) => ({
+    svg: `<svg role="img" data-source="${source.trim()}"></svg>`,
+    bindFunctions: () => {}
+  })
+};
 dom.window.requestAnimationFrame = (callback) => callback();
 dom.window.scrollTo = () => {};
 dom.window.HTMLElement.prototype.scrollIntoView = () => {};
@@ -56,6 +63,9 @@ dom.window.__mdpadRenderer.render({
     </div>
     <iframe src="javascript:window.bad = true"></iframe>
     <p>$x^2$</p>
+    <pre><code class="language-mermaid">graph TD
+  A-->B
+</code></pre>
     <pre><code class="language-js">const x = 1;</code></pre>
   `,
   baseUri: "https://doc.mdpad.local/",
@@ -102,6 +112,8 @@ assert.equal(document.getElementById("left").style.textAlign, "center");
 assert.equal(document.getElementById("left").style.color, "");
 assert.equal(document.querySelector(".blocked-embed").textContent, "Blocked embedded content");
 assert.ok(document.querySelector(".katex"));
+assert.ok(document.querySelector(".mermaid-block svg"));
+assert.equal(document.querySelector("code.language-mermaid"), null);
 assert.ok(document.querySelector("code").className.includes("hljs"));
 
 document.querySelector("a").dispatchEvent(new dom.window.MouseEvent("click", { bubbles: true, cancelable: true }));
