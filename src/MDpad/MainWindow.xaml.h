@@ -46,20 +46,40 @@ namespace winrt::MDpad::implementation
         void ReplaceNext_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void CloseFind_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SelectAll_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void Bold_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void Italic_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void InlineCode_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void Strikethrough_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void Link_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void Quote_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void BulletList_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
+        void NumberedList_Click(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::RoutedEventArgs const& args);
         void SourceTextBox_TextChanged(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::Controls::TextChangedEventArgs const& args);
         void OnClosed(winrt::Windows::Foundation::IInspectable const& sender, Microsoft::UI::Xaml::WindowEventArgs const& args);
+        void OnAppWindowClosing(Microsoft::UI::Windowing::AppWindow const& sender, Microsoft::UI::Windowing::AppWindowClosingEventArgs const& args);
 
     private:
         fire_and_forget InitializePreviewAsync();
         fire_and_forget SaveGeneratedHtmlAsync();
         fire_and_forget ShowSettingsAsync();
+        fire_and_forget NewWithPromptAsync();
+        fire_and_forget OpenWithPromptAsync();
+        fire_and_forget RequestCloseAsync();
+        fire_and_forget NavigateHistoryAsync(int offset);
+        fire_and_forget OpenMarkdownFileInCurrentWindowAsync(std::filesystem::path path);
+        winrt::Windows::Foundation::IAsyncOperation<bool> ConfirmDiscardIfDirtyAsync();
         void RegisterKeyboardAccelerators();
+        bool HandleNativeShortcut(winrt::Windows::System::VirtualKey key, bool control, bool shift, bool alt);
+        bool HandlePreviewShortcut(std::wstring const& command);
+        void RequestClose();
         void LoadSettings();
         void SaveSettings();
         void ApplyWindowSize();
         void SaveWindowSize();
         void ApplyAppTheme();
         void ApplyAcrylicEffect();
+        void ApplyPreviewBackgroundColor();
+        void StopAcrylicBackdrop();
         void ApplyNavigationState();
         void ApplyViewMode();
         void ApplyEditCommandState();
@@ -71,7 +91,6 @@ namespace winrt::MDpad::implementation
         bool OpenDocumentPath(std::filesystem::path const& path, bool addToHistory);
         void AddHistoryEntry(std::filesystem::path const& path);
         void NavigateHistory(int offset);
-        bool ConfirmDiscardIfDirty();
         bool Save();
         bool SaveAs();
         HWND WindowHandle();
@@ -86,6 +105,10 @@ namespace winrt::MDpad::implementation
         void OpenExternalLink(std::wstring const& href);
         void ShowFindPanel(bool replaceMode);
         bool FindNext();
+        bool ApplyInlineMarkdown(std::wstring_view prefix, std::wstring_view suffix, std::wstring_view placeholder);
+        bool ApplyMarkdownLink();
+        bool ApplyLinePrefix(std::wstring_view prefix);
+        bool ApplyOrderedList();
 
         DocumentState m_document;
         MarkdownRenderer m_renderer;
@@ -95,10 +118,14 @@ namespace winrt::MDpad::implementation
         std::vector<std::filesystem::path> m_fileHistory;
         std::filesystem::path m_mappedDocumentDirectory;
         std::wstring m_pendingPreviewJson;
+        Microsoft::UI::Composition::SystemBackdrops::DesktopAcrylicController m_acrylicController{ nullptr };
+        Microsoft::UI::Composition::SystemBackdrops::SystemBackdropConfiguration m_acrylicConfiguration{ nullptr };
         int m_historyIndex{ -1 };
         bool m_previewReady{ false };
         bool m_suppressTextChanged{ false };
         bool m_acrylicBackdropEnabled{ false };
+        bool m_closeConfirmed{ false };
+        bool m_dirtyPromptActive{ false };
     };
 }
 

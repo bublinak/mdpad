@@ -123,6 +123,15 @@ assert.deepEqual(posted, [
   "open-link:https://doc.mdpad.local/docs/next%20file.md#part"
 ]);
 
+posted.length = 0;
+document.dispatchEvent(new dom.window.KeyboardEvent("keydown", {
+  key: "n",
+  ctrlKey: true,
+  bubbles: true,
+  cancelable: true
+}));
+assert.deepEqual(posted, ["shortcut:new"]);
+
 assert.equal(dom.window.mdpadFind("hello"), true);
 assert.ok(document.querySelector(".find-highlight"));
 

@@ -94,12 +94,6 @@ std::optional<std::filesystem::path> ShowSaveHtmlDialog(HWND owner, std::filesys
     return ShowFileDialog(owner, true, currentPath, SaveKind::Html);
 }
 
-int ShowDirtyPrompt(HWND owner, std::wstring const& displayName)
-{
-    std::wstring message = L"Do you want to save changes to " + displayName + L"?";
-    return MessageBoxW(owner, message.c_str(), L"MDpad", MB_ICONWARNING | MB_YESNOCANCEL);
-}
-
 void ShowError(HWND owner, std::wstring const& message)
 {
     MessageBoxW(owner, message.c_str(), L"MDpad", MB_ICONERROR | MB_OK);

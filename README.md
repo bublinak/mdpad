@@ -12,6 +12,7 @@ This repository was generated and iteratively modified with AI assistance from O
 - Top-left toggle between formatted preview and Markdown syntax/source mode.
 - One document per window.
 - Real keyboard shortcuts for file, edit, find, zoom, and navigation commands.
+- Markdown styling commands for bold, italic, inline code, strikethrough, links, quotes, and lists.
 - Fast startup path: native Markdown rendering first, then deferred WebView hydration for heavier features.
 - Markdown support through `cmark-gfm` when available, including headings, lists, tables, task lists, fenced code, links, and images.
 - KaTeX math rendering for inline and display equations.
@@ -20,15 +21,26 @@ This repository was generated and iteratively modified with AI assistance from O
 - Relative image and iframe paths resolved against the opened Markdown file folder.
 - Local Markdown file links open in MDpad, with a setting for new-window or current-window behavior.
 - Back and forward buttons move through the current window's Markdown file history.
-- Opaque app chrome with an optional acrylic-backed document surface.
+- Opaque app chrome with optional acrylic for the native syntax editor.
+- Solid formatted preview surface; WinUI 3 WebView2 does not expose a transparent surface suitable for desktop acrylic.
 - Sanitized raw HTML support for common document markup, including `div`, `img`, and `iframe`.
 - Safe inline CSS subset for layout-oriented HTML, including side-by-side iframe layouts.
 - Generated preview HTML export from the `File` menu.
-- Settings dialog for theme, startup mode, Markdown file-link behavior, and document acrylic opacity.
+- Settings dialog for theme, startup mode, Markdown file-link behavior, and source-editor acrylic opacity.
 - `.md` and `.markdown` file associations in the packaged app manifest.
 - Self-contained Windows App SDK release package.
 
 ## Releases
+
+### v1.5
+
+Improves editing shortcuts, close safety, and acrylic behavior:
+
+- Adds toggleable Markdown styling commands for bold, italic, inline code, strikethrough, links, block quotes, bullets, and numbered lists.
+- Handles preview-surface shortcuts such as `Ctrl+N`, `Ctrl+O`, `Ctrl+S`, `Ctrl+F`, and zoom when focus is inside WebView2.
+- Prompts to save dirty documents with a WinUI dialog when closing the window with the title-bar close button.
+- Moves the acrylic slider to the native `DesktopAcrylicController` transparency settings instead of painting an opaque editor overlay.
+- Scopes acrylic to the native syntax editor. Formatted preview uses a solid WebView2 surface because WinUI 3 WebView2 does not support the transparent host background needed for desktop acrylic.
 
 ### v1.4
 

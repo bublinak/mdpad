@@ -13,7 +13,7 @@
             <RowDefinition Height="28" />
         </Grid.RowDefinitions>
 
-        <Grid Grid.Row="0" Background="{ThemeResource LayerFillColorDefaultBrush}" Padding="4,3">
+        <Grid Grid.Row="0" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}" Padding="4,3">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
@@ -69,6 +69,15 @@
                     <MenuFlyoutItem x:Name="PasteItem" Text="Paste" Click="Paste_Click" KeyboardAcceleratorTextOverride="Ctrl+V" />
                     <MenuFlyoutItem x:Name="DeleteItem" Text="Delete" Click="Delete_Click" KeyboardAcceleratorTextOverride="Del" />
                     <MenuFlyoutSeparator />
+                    <MenuFlyoutItem x:Name="BoldItem" Text="Bold" Click="Bold_Click" KeyboardAcceleratorTextOverride="Ctrl+B" />
+                    <MenuFlyoutItem x:Name="ItalicItem" Text="Italic" Click="Italic_Click" KeyboardAcceleratorTextOverride="Ctrl+I" />
+                    <MenuFlyoutItem x:Name="InlineCodeItem" Text="Inline code" Click="InlineCode_Click" KeyboardAcceleratorTextOverride="Ctrl+Shift+C" />
+                    <MenuFlyoutItem x:Name="StrikethroughItem" Text="Strikethrough" Click="Strikethrough_Click" KeyboardAcceleratorTextOverride="Ctrl+Shift+X" />
+                    <MenuFlyoutItem x:Name="LinkItem" Text="Link" Click="Link_Click" KeyboardAcceleratorTextOverride="Ctrl+K" />
+                    <MenuFlyoutItem x:Name="QuoteItem" Text="Block quote" Click="Quote_Click" />
+                    <MenuFlyoutItem x:Name="BulletListItem" Text="Bullet list" Click="BulletList_Click" />
+                    <MenuFlyoutItem x:Name="NumberedListItem" Text="Numbered list" Click="NumberedList_Click" />
+                    <MenuFlyoutSeparator />
                     <MenuFlyoutItem Text="Find" Click="Find_Click" KeyboardAcceleratorTextOverride="Ctrl+F" />
                     <MenuFlyoutItem x:Name="ReplaceItem" Text="Replace" Click="Replace_Click" KeyboardAcceleratorTextOverride="Ctrl+H" />
                     <MenuFlyoutSeparator />
@@ -100,34 +109,33 @@
         <Border
             x:Name="FindPanel"
             Grid.Row="1"
-            Background="{ThemeResource LayerFillColorDefaultBrush}"
+            Background="{ThemeResource ApplicationPageBackgroundThemeBrush}"
             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
             BorderThickness="0,1,0,1"
             Padding="8"
             Visibility="Collapsed">
-            <Grid ColumnSpacing="8">
+            <Grid ColumnSpacing="8" RowSpacing="8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="220" />
-                    <ColumnDefinition Width="220" />
+                    <ColumnDefinition Width="*" MinWidth="0" />
                     <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBox x:Name="FindTextBox" Grid.Column="0" PlaceholderText="Find" />
-                <TextBox x:Name="ReplaceTextBox" Grid.Column="1" PlaceholderText="Replace" />
-                <Button Grid.Column="2" Content="Find Next" Click="FindNext_Click" />
-                <Button x:Name="ReplaceButton" Grid.Column="3" Content="Replace" Click="ReplaceNext_Click" />
-                <Button Grid.Column="5" Content="Close" Click="CloseFind_Click" />
+                <TextBox x:Name="FindTextBox" Grid.Row="0" Grid.Column="0" MinWidth="0" PlaceholderText="Find" />
+                <Button Grid.Row="0" Grid.Column="2" Content="Close" Click="CloseFind_Click" />
+                <TextBox x:Name="ReplaceTextBox" Grid.Row="1" Grid.Column="0" MinWidth="0" PlaceholderText="Replace" />
+                <Button Grid.Row="1" Grid.Column="1" Content="Find Next" Click="FindNext_Click" />
+                <Button x:Name="ReplaceButton" Grid.Row="1" Grid.Column="2" Content="Replace" Click="ReplaceNext_Click" />
             </Grid>
         </Border>
 
-        <Grid x:Name="DocumentSurfaceGrid" Grid.Row="2" Background="{ThemeResource LayerFillColorDefaultBrush}">
+        <Grid x:Name="DocumentSurfaceGrid" Grid.Row="2" Background="Transparent">
             <Border
                 x:Name="DocumentAcrylicLayer"
-                Background="{ThemeResource AcrylicInAppFillColorDefaultBrush}"
-                IsHitTestVisible="False"
-                Opacity="0.7" />
+                IsHitTestVisible="False" />
             <controls:WebView2
                 x:Name="PreviewWebView"
                 DefaultBackgroundColor="Transparent" />
@@ -141,10 +149,21 @@
                 Padding="16"
                 TextChanged="SourceTextBox_TextChanged"
                 TextWrapping="Wrap"
-                Visibility="Collapsed" />
+                Visibility="Collapsed">
+                <TextBox.Resources>
+                    <SolidColorBrush x:Key="TextControlBackground" Color="Transparent" />
+                    <SolidColorBrush x:Key="TextControlBackgroundPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="TextControlBackgroundFocused" Color="Transparent" />
+                    <SolidColorBrush x:Key="TextControlBackgroundDisabled" Color="Transparent" />
+                    <SolidColorBrush x:Key="TextControlBorderBrush" Color="Transparent" />
+                    <SolidColorBrush x:Key="TextControlBorderBrushPointerOver" Color="Transparent" />
+                    <SolidColorBrush x:Key="TextControlBorderBrushFocused" Color="Transparent" />
+                    <SolidColorBrush x:Key="TextControlBorderBrushDisabled" Color="Transparent" />
+                </TextBox.Resources>
+            </TextBox>
         </Grid>
 
-        <Grid Grid.Row="3" Padding="10,0" Background="{ThemeResource LayerFillColorDefaultBrush}">
+        <Grid Grid.Row="3" Padding="10,0" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />

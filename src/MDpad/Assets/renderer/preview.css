@@ -2,22 +2,35 @@
   color-scheme: light dark;
   font-family: "Segoe UI", system-ui, sans-serif;
   font-size: 16px;
+  --mdpad-preview-background: #fafafa;
 }
 
 :root[data-mdpad-theme="light"] {
   color-scheme: light;
+  --mdpad-preview-background: #fafafa;
 }
 
 :root[data-mdpad-theme="dark"] {
   color-scheme: dark;
+  --mdpad-preview-background: #202020;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-mdpad-theme="light"]) {
+    --mdpad-preview-background: #202020;
+  }
 }
 
 html,
 body {
   margin: 0;
   min-height: 100%;
-  background: transparent;
+  background: var(--mdpad-preview-background);
   color: CanvasText;
+}
+
+#content {
+  background: transparent;
 }
 
 body {

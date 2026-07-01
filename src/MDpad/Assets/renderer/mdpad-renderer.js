@@ -439,6 +439,48 @@
     }
   }
 
+  function postShortcut(command) {
+    if (!window.chrome?.webview) {
+      return false;
+    }
+
+    window.chrome.webview.postMessage(`shortcut:${command}`);
+    return true;
+  }
+
+  function handleShortcut(event) {
+    if (!event.ctrlKey || event.altKey || event.defaultPrevented) {
+      return;
+    }
+
+    const key = event.key.toLowerCase();
+    let command = "";
+    if (key === "n" && !event.shiftKey) {
+      command = "new";
+    } else if (key === "o" && !event.shiftKey) {
+      command = "open";
+    } else if (key === "s") {
+      command = event.shiftKey ? "save-as" : "save";
+    } else if (key === "f" && !event.shiftKey) {
+      command = "find";
+    } else if (key === "a" && !event.shiftKey) {
+      command = "select-all";
+    } else if ((key === "+" || key === "=") && !event.shiftKey) {
+      command = "zoom-in";
+    } else if ((key === "-" || key === "_") && !event.shiftKey) {
+      command = "zoom-out";
+    } else if (key === "0" && !event.shiftKey) {
+      command = "reset-zoom";
+    }
+
+    if (!command || !postShortcut(command)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   function hydrateMath() {
     if (!window.renderMathInElement) {
       return;
@@ -528,6 +570,7 @@
   };
 
   if (window.chrome?.webview) {
+    document.addEventListener("keydown", handleShortcut, true);
     window.chrome.webview.addEventListener("message", (event) => {
       const payload = event.data;
       if (payload?.kind === "render") {
